@@ -1,0 +1,68 @@
+// FleetOps — Hafta 1 şeması
+// Multi-tenant hiyerarşi: Tenant (firma) -> Depot (depo/hub) -> Vehicle / Driver
+// Not: Hafta 3'te Vehicle.currentLat/currentLng gibi düz alanlarla başlanacak;
+// ölçek gerekirse PostGIS'e (geography tipi) geçiş bir sonraki adım.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DISPATCHER
+  DRIVER
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  depots Depot[]
+  users  User[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(DISPATCHER)
+  createdAt    DateTime @default(now())
+}
+
+model Depot {
+  id       String @id @default(cuid())
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  name     String
+
+  vehicles Vehicle[]
+  drivers  Driver[]
+}
+
+model Vehicle {
+  id             String   @id @default(cuid())
+  depotId        String
+  depot          Depot    @relation(fields: [depotId], references: [id])
+  plate          String
+  model          String?
+  insuranceUntil DateTime?
+  inspectionUntil DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model Driver {
+  id             String    @id @default(cuid())
+  depotId        String
+  depot          Depot     @relation(fields: [depotId], references: [id])
+  fullName       String
+  licenseUntil   DateTime?
+  createdAt      DateTime  @default(now())
+}
