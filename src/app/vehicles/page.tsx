@@ -1,15 +1,15 @@
 import { prisma } from "@/lib/prisma";
-import { createVehicle } from "./actions";
+import * as vehicleActions from "./actions";
+import VehicleRow from "./VehicleRow";
 
-export default async function Vehicles() {
+const VehiclesPage = async () => {
   const depotList = await prisma.depot.findMany();
   const vehicleList = await prisma.vehicle.findMany();
 
   const vehicles = vehicleList.map((vehicle) => (
-    <li className="list-item" key={vehicle.id}>
-      {vehicle.plate} - {vehicle.depotId}
-    </li>
+    <VehicleRow key={vehicle.id} vehicle={vehicle} depotList={depotList} />
   ));
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <h1 className="text-3xl font-bold">FleetOps Vehicles</h1>
@@ -18,7 +18,7 @@ export default async function Vehicles() {
         {vehicles.length ? <ul className="list-disc pl-5">{vehicles}</ul> : "No vehicles found."}
       </div>
       <form
-        action={createVehicle}
+        action={vehicleActions.createVehicle}
         style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
       >
         <input
@@ -27,6 +27,24 @@ export default async function Vehicles() {
           name="plate"
           placeholder="Plate"
           required
+        />
+        <input
+          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="text"
+          name="model"
+          placeholder="Model"
+        />
+        <input
+          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="date"
+          name="insuranceUntil"
+          placeholder="Insurance Until"
+        />
+        <input
+          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="date"
+          name="inspectionUntil"
+          placeholder="Inspection Until"
         />
         <select
           className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -48,4 +66,6 @@ export default async function Vehicles() {
       </form>
     </main>
   );
-}
+};
+
+export default VehiclesPage;

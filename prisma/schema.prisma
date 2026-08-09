@@ -51,7 +51,7 @@ model Vehicle {
   id             String   @id @default(cuid())
   depotId        String
   depot          Depot    @relation(fields: [depotId], references: [id])
-  plate          String
+  plate          String@unique
   model          String?
   insuranceUntil DateTime?
   inspectionUntil DateTime?
