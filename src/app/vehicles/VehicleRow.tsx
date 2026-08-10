@@ -1,16 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useActionState, useEffect } from "react";
 import type { Vehicle, Depot } from "@prisma/client";
 import * as vehicleActions from "./actions";
 
 const VehicleRow = ({ vehicle, depotList }: { vehicle: Vehicle; depotList: Depot[] }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [actionState, formAction, isPending] = useActionState(
+    vehicleActions.updateVehicle.bind(null, vehicle.id),
+    { error: null },
+  );
+
+  useEffect(() => {
+    if (!actionState.error) setIsEditing(false);
+  }, [actionState.error]);
 
   const updateVehicleForm = () => {
     return (
       <form
-        action={vehicleActions.updateVehicle.bind(null, vehicle.id)}
+        action={formAction}
         style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
       >
         <input
@@ -61,8 +69,9 @@ const VehicleRow = ({ vehicle, depotList }: { vehicle: Vehicle; depotList: Depot
         <button
           className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           type="submit"
+          disabled={isPending}
         >
-          Update Vehicle
+          {isPending ? "Updating..." : "Update Vehicle"}
         </button>
       </form>
     );
@@ -94,6 +103,7 @@ const VehicleRow = ({ vehicle, depotList }: { vehicle: Vehicle; depotList: Depot
         >
           Delete Vehicle
         </button>
+        {actionState.error && <p className="text-red-500">{actionState.error}</p>}
       </form>
     </li>
   );
