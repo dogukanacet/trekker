@@ -47,7 +47,11 @@ export const createVehicle = async (data: FormData) => {
   revalidatePath("/vehicles");
 };
 
-export const updateVehicle = async (vehicleId: string, data: FormData) => {
+export const updateVehicle = async (
+  vehicleId: string,
+  prevState: { error: string | null },
+  data: FormData,
+) => {
   const depotId = data.get("depotId") as string;
   const plate = data.get("plate") as string;
   const model = data.get("model") as string;
@@ -67,7 +71,7 @@ export const updateVehicle = async (vehicleId: string, data: FormData) => {
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    throw new Error(`Validation failed: ${errorMessages}`);
+    return { error: `Validation failed: ${errorMessages}` };
   }
 
   await prisma.vehicle.update({
@@ -81,6 +85,7 @@ export const updateVehicle = async (vehicleId: string, data: FormData) => {
     },
   });
   revalidatePath("/vehicles");
+  return { error: null };
 };
 
 export const deleteVehicle = async (vehicleId: string) => {

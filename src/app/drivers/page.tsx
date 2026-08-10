@@ -1,14 +1,14 @@
 import { prisma } from "@/lib/prisma";
-import * as vehicleActions from "./actions";
-import VehicleRow from "./VehicleRow";
+import * as driverActions from "./actions";
+import DriverRow from "./DriverRow";
 import Link from "next/link";
 
-const VehiclesPage = async () => {
+const DriversPage = async () => {
   const depotList = await prisma.depot.findMany();
-  const vehicleList = await prisma.vehicle.findMany();
+  const driverList = await prisma.driver.findMany();
 
-  const vehicles = vehicleList.map((vehicle) => (
-    <VehicleRow key={vehicle.id} vehicle={vehicle} depotList={depotList} />
+  const drivers = driverList.map((driver) => (
+    <DriverRow key={driver.id} driver={driver} depotList={depotList} />
   ));
 
   return (
@@ -16,39 +16,28 @@ const VehiclesPage = async () => {
       <Link href="/" className="text-blue-500 hover:underline mb-4">
         Home
       </Link>
-      <h1 className="text-3xl font-bold">FleetOps Vehicles</h1>
+      <h1 className="text-3xl font-bold">FleetOps Drivers</h1>
       <div className="mt-2 text-gray-600">
-        vehicle list:{" "}
-        {vehicles.length ? <ul className="list-disc pl-5">{vehicles}</ul> : "No vehicles found."}
+        driver list:{" "}
+        {drivers.length ? <ul className="list-disc pl-5">{drivers}</ul> : "No drivers found."}
       </div>
       <form
-        action={vehicleActions.createVehicle}
+        action={driverActions.createDriver}
         style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
       >
         <input
           className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           type="text"
-          name="plate"
-          placeholder="Plate"
+          name="fullName"
+          placeholder="Full Name"
           required
         />
         <input
           className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="text"
-          name="model"
-          placeholder="Model"
-        />
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           type="date"
-          name="insuranceUntil"
-          placeholder="Insurance Until"
-        />
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="date"
-          name="inspectionUntil"
-          placeholder="Inspection Until"
+          name="licenseUntil"
+          placeholder="License Until"
+          required
         />
         <select
           className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -65,11 +54,11 @@ const VehiclesPage = async () => {
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           type="submit"
         >
-          Add Vehicle
+          Add Driver
         </button>
       </form>
     </main>
   );
 };
 
-export default VehiclesPage;
+export default DriversPage;
