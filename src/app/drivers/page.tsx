@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import * as driverActions from "./actions";
-import DriverRow from "./DriverRow";
+import * as driverActions from "@/app/drivers/actions";
+import DriverRow from "@/app/drivers/DriverRow";
 import Link from "next/link";
 
 const DriversPage = async () => {

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import * as vehicleActions from "./actions";
-import VehicleRow from "./VehicleRow";
+import * as vehicleActions from "@/app/vehicles/actions";
+import VehicleRow from "@/app/vehicles/VehicleRow";
 import Link from "next/link";
 
 const VehiclesPage = async () => {
