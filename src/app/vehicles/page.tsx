@@ -2,10 +2,16 @@ import { prisma } from "@/lib/prisma";
 import * as vehicleActions from "@/app/vehicles/actions";
 import VehicleRow from "@/app/vehicles/VehicleRow";
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 
 const VehiclesPage = async () => {
-  const depotList = await prisma.depot.findMany();
-  const vehicleList = await prisma.vehicle.findMany();
+  const session = await auth();
+  const depotList = await prisma.depot.findMany({
+    where: { tenantId: session?.user?.tenantId },
+  });
+  const vehicleList = await prisma.vehicle.findMany({
+    where: { depot: { tenantId: session?.user?.tenantId } },
+  });
 
   const vehicles = vehicleList.map((vehicle) => (
     <VehicleRow key={vehicle.id} vehicle={vehicle} depotList={depotList} />

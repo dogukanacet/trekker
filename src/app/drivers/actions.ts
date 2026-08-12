@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 
 const driverSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
@@ -11,6 +12,11 @@ const driverSchema = z.object({
 });
 
 export const createDriver = async (data: FormData) => {
+  const session = await auth();
+  if (!session) {
+    throw new Error("User is not authenticated");
+  }
+
   const depotId = data.get("depotId") as string;
   const fullName = data.get("fullName") as string;
 
@@ -31,6 +37,14 @@ export const createDriver = async (data: FormData) => {
     throw new Error(`Validation failed: ${errorMessages}`);
   }
 
+  const depot = await prisma.depot.findFirst({
+    where: { id: validationResult?.data?.depotId, tenantId: session?.user?.tenantId },
+  });
+
+  if (!depot) {
+    throw new Error("Depot not found or does not belong to the user's tenant");
+  }
+
   await prisma.driver.create({
     data: {
       depotId: validationResult.data.depotId,
@@ -46,6 +60,11 @@ export const updateDriver = async (
   prevState: { error: string | null },
   data: FormData,
 ) => {
+  const session = await auth();
+  if (!session) {
+    throw new Error("User is not authenticated");
+  }
+
   const depotId = data.get("depotId") as string;
   const fullName = data.get("fullName") as string;
   const licenseUntilRaw = data.get("licenseUntil") as string;
@@ -65,6 +84,14 @@ export const updateDriver = async (
     return { error: `Validation failed: ${errorMessages}` };
   }
 
+  const depot = await prisma.depot.findFirst({
+    where: { id: validationResult?.data?.depotId, tenantId: session?.user?.tenantId },
+  });
+
+  if (!depot) {
+    throw new Error("Depot not found or does not belong to the user's tenant");
+  }
+
   await prisma.driver.update({
     where: { id: driverId },
     data: {
@@ -79,8 +106,12 @@ export const updateDriver = async (
 };
 
 export const deleteDriver = async (driverId: string) => {
-  await prisma.driver.delete({
-    where: { id: driverId },
+  const session = await auth();
+  if (!session) {
+    throw new Error("User is not authenticated");
+  }
+  await prisma.driver.deleteMany({
+    where: { id: driverId, depot: { tenantId: session?.user?.tenantId } },
   });
   revalidatePath("/drivers");
 };
