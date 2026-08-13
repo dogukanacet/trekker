@@ -2,7 +2,7 @@
 
 import React, { useState, useActionState, useEffect } from "react";
 import type { Vehicle, Depot } from "@prisma/client";
-import * as vehicleActions from "./actions";
+import * as vehicleActions from "@/app/vehicles/actions";
 
 const VehicleRow = ({ vehicle, depotList }: { vehicle: Vehicle; depotList: Depot[] }) => {
   const [isEditing, setIsEditing] = useState(false);

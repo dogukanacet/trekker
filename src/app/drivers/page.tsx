@@ -1,11 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import * as driverActions from "./actions";
-import DriverRow from "./DriverRow";
+import * as driverActions from "@/app/drivers/actions";
+import DriverRow from "@/app/drivers/DriverRow";
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 
 const DriversPage = async () => {
-  const depotList = await prisma.depot.findMany();
-  const driverList = await prisma.driver.findMany();
+  const session = await auth();
+  const depotList = await prisma.depot.findMany({
+    where: { tenantId: session?.user?.tenantId },
+  });
+  const driverList = await prisma.driver.findMany({
+    where: { depot: { tenantId: session?.user?.tenantId } },
+  });
 
   const drivers = driverList.map((driver) => (
     <DriverRow key={driver.id} driver={driver} depotList={depotList} />
