@@ -5,28 +5,22 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 
-const driverSchema = z.object({
+const routeSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
-  fullName: z.string().min(1, "fullName is required"),
-  licenseUntil: z.coerce.date(),
+  name: z.string().min(1, "Name is required"),
 });
 
-export const createDriver = async (data: FormData) => {
+export const createRoute = async (data: FormData) => {
   const session = await auth();
   if (!session) {
     throw new Error("User is not authenticated");
   }
 
   const depotId = data.get("depotId") as string;
-  const fullName = data.get("fullName") as string;
-
-  const licenseUntilRaw = data.get("licenseUntil") as string;
-  const licenseUntil = licenseUntilRaw ? new Date(licenseUntilRaw) : undefined;
-
-  const validationResult = driverSchema.safeParse({
+  const name = data.get("name") as string;
+  const validationResult = routeSchema.safeParse({
     depotId,
-    fullName,
-    licenseUntil,
+    name,
   });
 
   if (!validationResult.success) {
@@ -42,18 +36,17 @@ export const createDriver = async (data: FormData) => {
     throw new Error("Depot not found or does not belong to the user's tenant");
   }
 
-  await prisma.driver.create({
+  await prisma.route.create({
     data: {
       depotId: validationResult.data.depotId,
-      fullName: validationResult.data.fullName,
-      licenseUntil: validationResult.data.licenseUntil,
+      name: validationResult.data.name,
     },
   });
-  revalidatePath("/drivers");
+  revalidatePath("/routes");
 };
 
-export const updateDriver = async (
-  driverId: string,
+export const updateRoute = async (
+  routeId: string,
   prevState: { error: string | null },
   data: FormData,
 ) => {
@@ -63,14 +56,11 @@ export const updateDriver = async (
   }
 
   const depotId = data.get("depotId") as string;
-  const fullName = data.get("fullName") as string;
-  const licenseUntilRaw = data.get("licenseUntil") as string;
-  const licenseUntil = licenseUntilRaw ? new Date(licenseUntilRaw) : undefined;
+  const name = data.get("name") as string;
 
-  const validationResult = driverSchema.safeParse({
+  const validationResult = routeSchema.safeParse({
     depotId,
-    fullName,
-    licenseUntil,
+    name,
   });
 
   if (!validationResult.success) {
@@ -86,26 +76,25 @@ export const updateDriver = async (
     throw new Error("Depot not found or does not belong to the user's tenant");
   }
 
-  await prisma.driver.update({
-    where: { id: driverId },
+  await prisma.route.update({
+    where: { id: routeId },
     data: {
       depotId: validationResult.data.depotId,
-      fullName: validationResult.data.fullName,
-      licenseUntil: validationResult.data.licenseUntil,
+      name: validationResult.data.name,
     },
   });
-  revalidatePath("/drivers");
+  revalidatePath("/routes");
 
   return { error: null };
 };
 
-export const deleteDriver = async (driverId: string) => {
+export const deleteRoute = async (routeId: string) => {
   const session = await auth();
   if (!session) {
     throw new Error("User is not authenticated");
   }
-  await prisma.driver.deleteMany({
-    where: { id: driverId, depot: { tenantId: session?.user?.tenantId } },
+  await prisma.route.deleteMany({
+    where: { id: routeId, depot: { tenantId: session?.user?.tenantId } },
   });
-  revalidatePath("/drivers");
+  revalidatePath("/routes");
 };

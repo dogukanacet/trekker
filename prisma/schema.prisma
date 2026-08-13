@@ -45,17 +45,18 @@ model Depot {
 
   vehicles Vehicle[]
   drivers  Driver[]
+  routes   Route[]
 }
 
 model Vehicle {
-  id             String   @id @default(cuid())
-  depotId        String
-  depot          Depot    @relation(fields: [depotId], references: [id])
-  plate          String@unique
-  model          String?
-  insuranceUntil DateTime?
+  id              String   @id @default(cuid())
+  depotId         String
+  depot           Depot    @relation(fields: [depotId], references: [id])
+  plate           String@unique
+  model           String?
+  insuranceUntil  DateTime?
   inspectionUntil DateTime?
-  createdAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
 }
 
 model Driver {
@@ -65,4 +66,23 @@ model Driver {
   fullName       String
   licenseUntil   DateTime
   createdAt      DateTime  @default(now())
+}
+
+model Route {
+  id             String    @id @default(cuid())
+  depotId        String
+  depot          Depot     @relation(fields: [depotId], references: [id])
+  name           String
+  createdAt      DateTime  @default(now())
+  stops          RouteStop[]
+}
+
+model RouteStop {
+  id             String    @id @default(cuid())
+  routeId        String
+  route          Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  label          String
+  lat            Float
+  lng            Float
+  order          Int
 }
