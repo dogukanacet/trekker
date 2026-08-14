@@ -8,7 +8,7 @@ const RouteRow = ({ route, depotList }: { route: Route; depotList: Depot[] }) =>
   const depotName = depotList.find((depot) => depot.id === route.depotId)?.name;
   return (
     <li className="list-item" key={route.id}>
-      {route.name} - {depotName}
+      {route.name} - {depotName} - {route.id}
       {route.createdAt && <span> - Created: {route.createdAt.toLocaleDateString("tr")}</span>}
       <form action={routeActions.deleteRoute.bind(null, route.id)} style={{ display: "inline" }}>
         <button
