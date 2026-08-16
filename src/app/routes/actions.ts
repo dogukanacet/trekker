@@ -146,7 +146,7 @@ export const deleteStop = async (stopId: string, routeId: string) => {
   if (!session) {
     throw new Error("User is not authenticated");
   }
-  await prisma.routeStop.delete({
+  await prisma.routeStop.deleteMany({
     where: { id: stopId, route: { depot: { tenantId: session.user?.tenantId } } },
   });
   revalidatePath(`/routes/${routeId}`);
