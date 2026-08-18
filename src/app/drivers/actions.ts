@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth";
 const driverSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
   fullName: z.string().min(1, "fullName is required"),
-  licenseUntil: z.coerce.date().optional(),
+  licenseUntil: z.coerce.date(),
 });
 
 export const createDriver = async (data: FormData) => {
@@ -21,15 +21,12 @@ export const createDriver = async (data: FormData) => {
   const fullName = data.get("fullName") as string;
 
   const licenseUntilRaw = data.get("licenseUntil") as string;
-  const createdAtRaw = data.get("createdAt") as string;
   const licenseUntil = licenseUntilRaw ? new Date(licenseUntilRaw) : undefined;
-  const createdAt = createdAtRaw ? new Date(createdAtRaw) : undefined;
 
   const validationResult = driverSchema.safeParse({
     depotId,
     fullName,
     licenseUntil,
-    createdAt,
   });
 
   if (!validationResult.success) {
@@ -68,15 +65,12 @@ export const updateDriver = async (
   const depotId = data.get("depotId") as string;
   const fullName = data.get("fullName") as string;
   const licenseUntilRaw = data.get("licenseUntil") as string;
-  const createdAtRaw = data.get("createdAt") as string;
   const licenseUntil = licenseUntilRaw ? new Date(licenseUntilRaw) : undefined;
-  const createdAt = createdAtRaw ? new Date(createdAtRaw) : undefined;
 
   const validationResult = driverSchema.safeParse({
     depotId,
     fullName,
     licenseUntil,
-    createdAt,
   });
 
   if (!validationResult.success) {

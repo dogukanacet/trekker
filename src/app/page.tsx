@@ -13,6 +13,9 @@ export default function Home() {
         <Link href="/drivers" className="text-blue-500 hover:underline mr-4">
           Drivers
         </Link>
+        <Link href="/routes" className="text-blue-500 hover:underline mr-4">
+          Routes
+        </Link>
       </nav>
     </main>
   );
