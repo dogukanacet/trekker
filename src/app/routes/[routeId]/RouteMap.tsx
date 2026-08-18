@@ -1,6 +1,7 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import type { RouteStop } from "@prisma/client";
 
 import L from "leaflet";
@@ -11,7 +12,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const RouteMap = ({ stops }: { stops: RouteStop[] }) => {
+const FlyToStop = ({ stop }: { stop: RouteStop[] | null }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (stop) {
+      map.flyTo([stop.lat, stop.lng], 15);
+    }
+  }, [stop, map]);
+
+  return null;
+};
+
+const RouteMap = ({ stops, selectedStopId }: { stops: RouteStop[]; selectedStopId: string }) => {
+  const selectedStop = stops.find((s) => s.id === selectedStopId) ?? null;
   return (
     <MapContainer
       center={[stops[0]?.lat ?? 41.0082, stops[0]?.lng ?? 28.9784]}
@@ -24,6 +38,7 @@ const RouteMap = ({ stops }: { stops: RouteStop[] }) => {
           <Popup>{stop.label}</Popup>
         </Marker>
       ))}
+      <FlyToStop stop={selectedStop} />
     </MapContainer>
   );
 };
