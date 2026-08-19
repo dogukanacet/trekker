@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import DispatchGrid from "@/app/dispatches/DispatchGrid";
 import { auth } from "@/lib/auth";
+import Link from "next/link";
 import * as dispatchActions from "@/app/dispatches/actions";
 
 const DispatchesPage = async () => {
@@ -31,6 +32,9 @@ const DispatchesPage = async () => {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      <Link href="/" className="text-blue-500 hover:underline mb-4">
+        Home
+      </Link>
       <DispatchGrid dispatches={dispatchList} />
       <form
         action={dispatchActions.createDispatch}

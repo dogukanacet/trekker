@@ -2,8 +2,7 @@
 
 import { AgGridReact } from "ag-grid-react";
 import type { Dispatch } from "@prisma/client";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
+import { themeQuartz } from "ag-grid-community";
 
 const DispatchGrid = ({ dispatches }: { dispatches: Dispatch[] }) => {
   const columnDefs = [
@@ -14,7 +13,7 @@ const DispatchGrid = ({ dispatches }: { dispatches: Dispatch[] }) => {
     { field: "date", headerName: "Tarih" },
   ];
   return (
-    <div className="ag-theme-quartz" style={{ height: 500, width: "100%" }}>
+    <div theme={themeQuartz} defaultColDef={{ flex: 1 }} style={{ height: 500, width: "100%" }}>
       <AgGridReact rowData={dispatches} columnDefs={columnDefs} />
     </div>
   );
