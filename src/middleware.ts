@@ -4,8 +4,9 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isOnLogin = req.nextUrl.pathname === "/login";
+  const isOnRegister = req.nextUrl.pathname === "/register";
 
-  if (!isLoggedIn && !isOnLogin) {
+  if (!isLoggedIn && !isOnLogin && !isOnRegister) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 });

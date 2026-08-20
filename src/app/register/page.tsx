@@ -1,14 +1,21 @@
-import { loginAction } from "@/app/login/actions";
+import { registerAction } from "@/app/register/actions";
 import Link from "next/link";
 
-const LoginPage = () => {
+const RegisterPage = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-3xl font-bold">FleetOps Login</h1>
+      <h1 className="text-3xl font-bold">FleetOps Register</h1>
       <form
-        action={loginAction}
+        action={registerAction}
         style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
       >
+        <input
+          type="text"
+          name="companyName"
+          placeholder="company Name"
+          required
+          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
         <input
           type="text"
           name="email"
@@ -27,14 +34,14 @@ const LoginPage = () => {
           type="submit"
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
-          Login
+          Register
         </button>
       </form>
-      <Link href="/register" className="text-blue-500 hover:underline mb-4">
-        Register
+      <Link href="/login" className="text-blue-500 hover:underline mb-4">
+        back to Login
       </Link>
     </div>
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
