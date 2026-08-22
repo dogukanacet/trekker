@@ -8,7 +8,7 @@ export async function loginAction(formData: FormData) {
     await signIn("credentials", {
       email: formData.get("email") as string,
       password: formData.get("password") as string,
-      redirectTo: "/vehicles",
+      redirectTo: "/",
     });
   } catch (error) {
     if (error instanceof AuthError) {
