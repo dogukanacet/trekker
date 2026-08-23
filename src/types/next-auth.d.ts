@@ -4,5 +4,6 @@ declare module "next-auth" {
   interface User extends DefaultUser {
     role?: string;
     tenantId?: string;
+    id?: string;
   }
 }
