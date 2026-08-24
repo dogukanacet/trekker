@@ -1,11 +1,11 @@
 "use server";
 
-import { signIn, auth } from "@/lib/auth";
+import { signIn } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { issueRefreshToken } from "@/lib/refresh-token";
 import { AuthError } from "next-auth";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getRefreshTokenExpiryMs, setRefreshCookie } from "@/lib/refresh-cookie";
 
 export async function loginAction(formData: FormData) {
   try {
@@ -27,18 +27,8 @@ export async function loginAction(formData: FormData) {
     const refreshToken = await issueRefreshToken(user.id);
 
     // set cookies after login
-    const expiresIn = Math.floor(Number(process.env.REFRESH_TOKEN_EXPIRE_MS) / 1000); // convert to seconds
-
-    const cookieStore = await cookies();
-    cookieStore.set({
-      name: "fleetops.refresh-token",
-      value: refreshToken,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-      maxAge: expiresIn,
-    });
+    const expiresIn = getRefreshTokenExpiryMs();
+    await setRefreshCookie(refreshToken, expiresIn);
 
     redirect("/");
   } catch (error) {

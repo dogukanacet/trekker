@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { JWT } from "next-auth/jwt";
+import { getRefreshTokenExpiryMs } from "./refresh-cookie";
 
 export function generateRefreshToken(): string {
   return crypto.randomBytes(32).toString("hex");
@@ -12,13 +13,8 @@ export function hashToken(token: string): string {
 
 export async function issueRefreshToken(userId: string): Promise<string> {
   const rawToken = generateRefreshToken();
-  const expiresIn = Number(process.env.REFRESH_TOKEN_EXPIRE_MS);
 
-  if (!Number.isFinite(expiresIn) || expiresIn <= 0) {
-    throw new Error("REFRESH_TOKEN_EXPIRE_MS geçerli bir değer olmalıdır");
-  }
-
-  const expiresAt = new Date(Date.now() + expiresIn);
+  const expiresAt = new Date(Date.now() + getRefreshTokenExpiryMs());
 
   await prisma.refreshToken.create({
     data: {

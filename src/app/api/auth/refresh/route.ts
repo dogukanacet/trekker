@@ -2,12 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { generateRefreshToken, hashToken } from "@/lib/refresh-token";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
-const REFRESH_COOKIE = "fleetops.refresh-token";
+import { REFRESH_COOKIE_NAME } from "@/lib/constants";
+import { getRefreshTokenExpiryMs, setRefreshCookie } from "@/lib/refresh-cookie";
 
 export async function POST() {
   const cookieStore = await cookies();
-  const rawToken = cookieStore.get(REFRESH_COOKIE)?.value;
+  const rawToken = cookieStore.get(REFRESH_COOKIE_NAME)?.value;
 
   if (!rawToken) {
     return NextResponse.json(
@@ -33,7 +33,6 @@ export async function POST() {
 
   // rotation: cancel the old one & generate new
   const newRawToken = generateRefreshToken();
-  const expiresIn = Number(process.env.REFRESH_TOKEN_EXPIRE_MS);
 
   await prisma.$transaction([
     prisma.refreshToken.update({
@@ -44,21 +43,12 @@ export async function POST() {
       data: {
         userId: tokenRecord.userId,
         tokenHash: hashToken(newRawToken),
-        expiresAt: new Date(Date.now() + expiresIn),
+        expiresAt: new Date(Date.now() + getRefreshTokenExpiryMs()),
       },
     }),
   ]);
 
   //setting cookies
-  cookieStore.set({
-    name: REFRESH_COOKIE,
-    value: newRawToken,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-    maxAge: Math.floor(expiresIn / 1000),
-  });
-
+  setRefreshCookie(newRawToken, getRefreshTokenExpiryMs());
   return NextResponse.json({ ok: true });
 }

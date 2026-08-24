@@ -1,7 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { getRefreshTokenExpiryMs } from "./refresh-cookie";
 
-const refreshMaxAgeSec = Math.floor(Number(process.env.REFRESH_TOKEN_EXPIRE_MS) / 1000);
+const refreshMaxAgeSec = Math.floor(getRefreshTokenExpiryMs() / 1000);
 const accessTokenTtlMs = Number(process.env.ACCESS_TOKEN_EXPIRE_MS);
 
 export const authConfig = {
