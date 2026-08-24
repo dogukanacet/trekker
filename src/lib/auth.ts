@@ -2,8 +2,10 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { authConfig } from "@/lib/auth.config";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: { email: {}, password: {} },
@@ -32,20 +34,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-        token.tenantId = user.tenantId;
-      }
-      return token;
-    },
+    ...authConfig.callbacks,
+    async jwt(params) {
+      const nextToken = await authConfig.callbacks.jwt(params);
 
-    async session({ session, token }) {
-      session.user.tenantId = token.tenantId as string;
-      session.user.role = token.role as string;
-      return session;
+      if (params.user) {
+        return nextToken;
+      }
+
+      if (Date.now() < (nextToken.accessTokenExpires as number)) {
+        return nextToken;
+      }
+
+      // rotating token in here is not safe, only marking as expired
+      return { ...nextToken, error: "AccessTokenExpired" };
     },
   },
 });

@@ -1,5 +1,9 @@
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
+import { authConfig } from "@/lib/auth.config";
+import { redirect } from "next/navigation";
+
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
@@ -8,6 +12,10 @@ export default auth((req) => {
 
   if (!isLoggedIn && !isOnLogin && !isOnRegister) {
     return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  if (isLoggedIn && (isOnLogin || isOnRegister)) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
 });
 
