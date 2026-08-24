@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 const refreshMaxAgeSec = Math.floor(Number(process.env.REFRESH_TOKEN_EXPIRE_MS) / 1000);
-const accessTokenTtlMs = 60 * 60 * 1000;
+const accessTokenTtlMs = Number(process.env.ACCESS_TOKEN_EXPIRE_MS);
 
 export const authConfig = {
   providers: [Credentials],
@@ -23,6 +23,9 @@ export const authConfig = {
     async session({ session, token }) {
       session.user.tenantId = token.tenantId as string;
       session.user.role = token.role as string;
+      if (token.error) {
+        session.error = token.error as string;
+      }
       return session;
     },
   },

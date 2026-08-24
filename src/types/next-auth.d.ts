@@ -6,4 +6,8 @@ declare module "next-auth" {
     tenantId?: string;
     id?: string;
   }
+
+  interface Session extends DefaultSession {
+    error?: string;
+  }
 }

@@ -31,19 +31,6 @@ export async function issueRefreshToken(userId: string): Promise<string> {
   return rawToken;
 }
 
-export async function rotateSessionFromRefreshCookie(token: JWT): Promise<JWT> {
-  const refreshToken = token.accessToken as string;
-  const refreshTokenHash = hashToken(refreshToken);
-  const refreshTokenRecord = await prisma.refreshToken.findUnique({
-    where: { tokenHash: refreshTokenHash, expiresAt: { gt: new Date() }, isCancelled: false },
-    select: { userId: true },
-  });
-
-  if (!refreshTokenRecord) throw new Error("Invalid refresh token");
-
-  return { ...token, accessToken: refreshTokenRecord.userId };
-}
-
 export async function cancelRefreshToken(token: string): Promise<void> {
   await prisma.refreshToken.updateMany({
     where: { tokenHash: hashToken(token) },

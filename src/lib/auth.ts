@@ -3,7 +3,6 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { authConfig } from "@/lib/auth.config";
-import { rotateSessionFromRefreshCookie } from "@/lib/refresh-token";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -48,7 +47,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return nextToken;
       }
 
-      return rotateSessionFromRefreshCookie(nextToken);
+      // rotating token in here is not safe, only marking as expired
+      return { ...nextToken, error: "AccessTokenExpired" };
     },
   },
 });
