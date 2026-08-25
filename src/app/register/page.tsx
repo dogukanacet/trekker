@@ -4,7 +4,7 @@ import Link from "next/link";
 const RegisterPage = () => {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-3xl font-bold">FleetOps Register</h1>
+      <h1 className="text-3xl font-bold">Trekker Register</h1>
       <form
         action={registerAction}
         style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}

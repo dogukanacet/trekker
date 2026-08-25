@@ -4,7 +4,7 @@ import { Providers } from "@/app/providers";
 import { SessionRefresher } from "@/app/components/SessionRefresher";
 
 export const metadata: Metadata = {
-  title: "FleetOps",
+  title: "Trekker",
   description: "Multi-tenant filo ve sevkiyat yönetim platformu",
 };
 

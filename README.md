@@ -1,4 +1,4 @@
-# FleetOps
+# Trekker
 
 Multi-tenant filo & sevkiyat yönetim platformu — lojistik sektöründe portfolyo projesi.
 

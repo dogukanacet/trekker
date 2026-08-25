@@ -22,7 +22,7 @@ const RoutesPage = async () => {
       <Link href="/" className="text-blue-500 hover:underline mb-4">
         Home
       </Link>
-      <h1 className="text-3xl font-bold">FleetOps Routes</h1>
+      <h1 className="text-3xl font-bold">Trekker Routes</h1>
       <div className="mt-2 text-gray-600">
         route list:{" "}
         {routes.length ? <ul className="list-disc pl-5">{routes}</ul> : "No routes found."}

@@ -1,1 +1,1 @@
-export const REFRESH_COOKIE_NAME = "fleetops.refresh-token";
+export const REFRESH_COOKIE_NAME = "trekker.refresh-token";

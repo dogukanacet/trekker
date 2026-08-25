@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 
-export const REFRESH_COOKIE_NAME = "fleetops.refresh-token";
+export const REFRESH_COOKIE_NAME = "trekker.refresh-token";
 
 /**
  * REFRESH_TOKEN_EXPIRE_MS env değişkenini okur ve doğrular.

@@ -16,7 +16,7 @@ async function main() {
   });
   await prisma.user.create({
     data: {
-      email: "admin@fleetops.dev",
+      email: "admin@trekker.dev",
       passwordHash: hashedPassword,
       tenantId: tenant.id,
       role: "ADMIN",

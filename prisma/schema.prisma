@@ -1,8 +1,3 @@
-// FleetOps — Hafta 1 şeması
-// Multi-tenant hiyerarşi: Tenant (firma) -> Depot (depo/hub) -> Vehicle / Driver
-// Not: Hafta 3'te Vehicle.currentLat/currentLng gibi düz alanlarla başlanacak;
-// ölçek gerekirse PostGIS'e (geography tipi) geçiş bir sonraki adım.
-
 generator client {
   provider = "prisma-client-js"
 }
