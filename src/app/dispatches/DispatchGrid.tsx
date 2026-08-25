@@ -13,8 +13,13 @@ const DispatchGrid = ({ dispatches }: { dispatches: Dispatch[] }) => {
     { field: "date", headerName: "Tarih" },
   ];
   return (
-    <div theme={themeQuartz} defaultColDef={{ flex: 1 }} style={{ height: 500, width: "100%" }}>
-      <AgGridReact rowData={dispatches} columnDefs={columnDefs} />
+    <div style={{ height: 500, width: "100%" }}>
+      <AgGridReact
+        rowData={dispatches}
+        columnDefs={columnDefs}
+        theme={themeQuartz}
+        defaultColDef={{ flex: 1 }}
+      />
     </div>
   );
 };
