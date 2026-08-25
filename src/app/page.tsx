@@ -40,7 +40,7 @@ export default async function Home() {
       <div className="mx-auto max-w-4xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">FleetOps</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Trekker</h1>
             <p className="mt-1 text-gray-500">Filo yönetim paneline hoş geldin.</p>
           </div>
           <form action={logoutAction}>

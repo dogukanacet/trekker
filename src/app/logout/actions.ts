@@ -4,7 +4,7 @@ import { signOut } from "@/lib/auth";
 import { cancelRefreshToken } from "@/lib/refresh-token";
 import { cookies } from "next/headers";
 
-const REFRESH_COOKIE = "fleetops.refresh-token";
+const REFRESH_COOKIE = "trekker.refresh-token";
 
 export async function logoutAction() {
   const cookieStore = await cookies();

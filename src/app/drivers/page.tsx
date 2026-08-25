@@ -22,7 +22,7 @@ const DriversPage = async () => {
       <Link href="/" className="text-blue-500 hover:underline mb-4">
         Home
       </Link>
-      <h1 className="text-3xl font-bold">FleetOps Drivers</h1>
+      <h1 className="text-3xl font-bold">Trekker Drivers</h1>
       <div className="mt-2 text-gray-600">
         driver list:{" "}
         {drivers.length ? <ul className="list-disc pl-5">{drivers}</ul> : "No drivers found."}
