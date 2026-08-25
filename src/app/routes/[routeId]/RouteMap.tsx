@@ -12,7 +12,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const FlyToStop = ({ stop }: { stop: RouteStop[] | null }) => {
+const FlyToStop = ({ stop }: { stop: RouteStop | null }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -24,8 +24,17 @@ const FlyToStop = ({ stop }: { stop: RouteStop[] | null }) => {
   return null;
 };
 
-const RouteMap = ({ stops, selectedStopId }: { stops: RouteStop[]; selectedStopId: string }) => {
-  const selectedStop = stops.find((s) => s.id === selectedStopId) ?? null;
+const RouteMap = ({
+  stops,
+  selectedStopId,
+}: {
+  stops: RouteStop[];
+  selectedStopId: string | null;
+}) => {
+  const selectedStop = selectedStopId
+    ? (stops.find((stop) => stop.id === selectedStopId) ?? null)
+    : null;
+
   return (
     <MapContainer
       center={[stops[0]?.lat ?? 41.0082, stops[0]?.lng ?? 28.9784]}
