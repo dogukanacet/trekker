@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { RouteStop } from "@prisma/client";
-import * as routeActions from "@/app/routes/actions";
+import * as routeActions from "@/app/(dashboard)/routes/actions";
 import RouteMapLoader from "./RouteMapLoader";
 
 export default function RouteExplorer({ stops, routeId }: { stops: RouteStop[]; routeId: string }) {

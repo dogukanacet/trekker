@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import DispatchGrid from "@/app/dispatches/DispatchGrid";
+import DispatchGrid from "@/app/(dashboard)/dispatches/DispatchGrid";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
-import * as dispatchActions from "@/app/dispatches/actions";
+import * as dispatchActions from "@/app/(dashboard)/dispatches/actions";
 
 const DispatchesPage = async () => {
   const session = await auth();

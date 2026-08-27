@@ -2,7 +2,7 @@
 
 import React from "react";
 import type { Route, Depot } from "@prisma/client";
-import * as routeActions from "@/app/routes/actions";
+import * as routeActions from "@/app/(dashboard)/routes/actions";
 import Link from "next/link";
 
 const RouteRow = ({ route, depotList }: { route: Route; depotList: Depot[] }) => {
