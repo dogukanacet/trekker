@@ -1,7 +1,6 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
-import { redirect } from "next/navigation";
 
 const { auth } = NextAuth(authConfig);
 

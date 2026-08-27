@@ -2,7 +2,7 @@
 
 import React, { useState, useActionState, useEffect } from "react";
 import type { Driver, Depot } from "@prisma/client";
-import * as driverActions from "@/app/drivers/actions";
+import * as driverActions from "@/app/(dashboard)/drivers/actions";
 
 const DriverRow = ({ driver, depotList }: { driver: Driver; depotList: Depot[] }) => {
   const [isEditing, setIsEditing] = useState(false);

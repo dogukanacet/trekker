@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { logoutAction } from "@/app/logout/actions";
 
 export default async function Home() {
   const session = await auth();
@@ -43,14 +42,6 @@ export default async function Home() {
             <h1 className="text-3xl font-bold text-gray-900">Trekker</h1>
             <p className="mt-1 text-gray-500">Filo yönetim paneline hoş geldin.</p>
           </div>
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Çıkış
-            </button>
-          </form>
         </div>
 
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/app/providers";
-import { SessionRefresher } from "@/app/components/SessionRefresher";
+import { SessionRefresher } from "@/app/api/components/SessionRefresher";
 
 export const metadata: Metadata = {
   title: "Trekker",

@@ -1,20 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import * as routeActions from "@/app/routes/actions";
-import RouteRow from "@/app/routes/RouteRow";
+import * as vehicleActions from "@/app/(dashboard)/vehicles/actions";
+import VehicleRow from "@/app/(dashboard)/vehicles/VehicleRow";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 
-const RoutesPage = async () => {
+const VehiclesPage = async () => {
   const session = await auth();
   const depotList = await prisma.depot.findMany({
     where: { tenantId: session?.user?.tenantId },
   });
-  const routeList = await prisma.route.findMany({
+  const vehicleList = await prisma.vehicle.findMany({
     where: { depot: { tenantId: session?.user?.tenantId } },
   });
 
-  const routes = routeList.map((route) => (
-    <RouteRow key={route.id} route={route} depotList={depotList} />
+  const vehicles = vehicleList.map((vehicle) => (
+    <VehicleRow key={vehicle.id} vehicle={vehicle} depotList={depotList} />
   ));
 
   return (
@@ -22,21 +22,39 @@ const RoutesPage = async () => {
       <Link href="/" className="text-blue-500 hover:underline mb-4">
         Home
       </Link>
-      <h1 className="text-3xl font-bold">Trekker Routes</h1>
+      <h1 className="text-3xl font-bold">Trekker Vehicles</h1>
       <div className="mt-2 text-gray-600">
-        route list:{" "}
-        {routes.length ? <ul className="list-disc pl-5">{routes}</ul> : "No routes found."}
+        vehicle list:{" "}
+        {vehicles.length ? <ul className="list-disc pl-5">{vehicles}</ul> : "No vehicles found."}
       </div>
       <form
-        action={routeActions.createRoute}
+        action={vehicleActions.createVehicle}
         style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
       >
         <input
           className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           type="text"
-          name="name"
-          placeholder="Route Name"
+          name="plate"
+          placeholder="Plate"
           required
+        />
+        <input
+          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="text"
+          name="model"
+          placeholder="Model"
+        />
+        <input
+          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="date"
+          name="insuranceUntil"
+          placeholder="Insurance Until"
+        />
+        <input
+          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          type="date"
+          name="inspectionUntil"
+          placeholder="Inspection Until"
         />
         <select
           className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -53,11 +71,11 @@ const RoutesPage = async () => {
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           type="submit"
         >
-          Add Route
+          Add Vehicle
         </button>
       </form>
     </main>
   );
 };
 
-export default RoutesPage;
+export default VehiclesPage;

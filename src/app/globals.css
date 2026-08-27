@@ -3,7 +3,6 @@
 @tailwind utilities;
 @import "leaflet/dist/leaflet.css";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 @layer base {
   .theme {

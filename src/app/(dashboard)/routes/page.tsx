@@ -1,20 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import * as driverActions from "@/app/drivers/actions";
-import DriverRow from "@/app/drivers/DriverRow";
+import * as routeActions from "@/app/(dashboard)/routes/actions";
+import RouteRow from "@/app/(dashboard)/routes/RouteRow";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 
-const DriversPage = async () => {
+const RoutesPage = async () => {
   const session = await auth();
   const depotList = await prisma.depot.findMany({
     where: { tenantId: session?.user?.tenantId },
   });
-  const driverList = await prisma.driver.findMany({
+  const routeList = await prisma.route.findMany({
     where: { depot: { tenantId: session?.user?.tenantId } },
   });
 
-  const drivers = driverList.map((driver) => (
-    <DriverRow key={driver.id} driver={driver} depotList={depotList} />
+  const routes = routeList.map((route) => (
+    <RouteRow key={route.id} route={route} depotList={depotList} />
   ));
 
   return (
@@ -22,27 +22,20 @@ const DriversPage = async () => {
       <Link href="/" className="text-blue-500 hover:underline mb-4">
         Home
       </Link>
-      <h1 className="text-3xl font-bold">Trekker Drivers</h1>
+      <h1 className="text-3xl font-bold">Trekker Routes</h1>
       <div className="mt-2 text-gray-600">
-        driver list:{" "}
-        {drivers.length ? <ul className="list-disc pl-5">{drivers}</ul> : "No drivers found."}
+        route list:{" "}
+        {routes.length ? <ul className="list-disc pl-5">{routes}</ul> : "No routes found."}
       </div>
       <form
-        action={driverActions.createDriver}
+        action={routeActions.createRoute}
         style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
       >
         <input
           className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           type="text"
-          name="fullName"
-          placeholder="Full Name"
-          required
-        />
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="date"
-          name="licenseUntil"
-          placeholder="License Until"
+          name="name"
+          placeholder="Route Name"
           required
         />
         <select
@@ -60,11 +53,11 @@ const DriversPage = async () => {
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           type="submit"
         >
-          Add Driver
+          Add Route
         </button>
       </form>
     </main>
   );
 };
 
-export default DriversPage;
+export default RoutesPage;

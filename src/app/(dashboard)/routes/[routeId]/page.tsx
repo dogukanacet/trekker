@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import * as routeActions from "@/app/routes/actions";
+import * as routeActions from "@/app/(dashboard)/routes/actions";
 import RouteExplorer from "./RouteExplorer";
 
 export default async function RouteDetailPage({
