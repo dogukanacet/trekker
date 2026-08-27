@@ -1,32 +1,78 @@
 # Trekker
 
-Multi-tenant filo & sevkiyat yönetim platformu — lojistik sektöründe portfolyo projesi.
+Multi-tenant filo ve sevkiyat yönetim platformu. Restoran/hospitality sektöründen farklı bir alanda (lojistik) modern bir SaaS ürününün uçtan uca nasıl kurulacağını göstermek amacıyla geliştirilmiş bir portfolyo projesidir.
 
-## Kapsam ve Yol Haritası
+**Canlı demo:** [trekker-gilt.vercel.app](https://trekker-gilt.vercel.app)
 
-Bu repo, "6 haftalık gerçekçi MVP planı"nın Hafta 1 iskeletidir:
-Next.js 15 (App Router) + TypeScript + Prisma + PostgreSQL + Auth.js (multi-tenant auth stub).
+## Özellikler
 
-Detaylı yol haritası ve öncelikler için [`CLAUDE.md`](./CLAUDE.md) dosyasına bakın —
-bu dosya aynı zamanda Claude Code için proje bağlamı sağlar.
+- **Multi-tenant mimari** — her firma (Tenant) kendi depo, araç, sürücü ve rota verilerini izole bir şekilde yönetir; tüm sorgular tenant/IDOR korumalı
+- **Credentials tabanlı kimlik doğrulama** — bcrypt ile parola hash'leme, self-servis kayıt akışı
+- **Access + refresh token akışı** — kısa ömürlü access token, DB-backed rotate edilebilir refresh token, süresi dolan/iptal edilen tokenlarda otomatik zorla çıkış
+- **Araç/Sürücü/Rota/Sevkiyat (Dispatch) CRUD işlemleri** — Server Actions + Zod validasyonu
+- **Rota haritası** — react-leaflet ile durak listesi + interaktif harita, tıklanan durağa `flyTo` ile odaklanma
+- **Sevkiyat tablosu** — AG Grid (Theming API) ile filtrelenebilir/sıralanabilir veri tablosu
+- **Hata izleme** — Sentry entegrasyonu (client/server/edge)
+
+## Mimari
+
+### Veri modeli
+
+```mermaid
+erDiagram
+    Tenant ||--o{ Depot : has
+    Tenant ||--o{ User : has
+    Depot ||--o{ Vehicle : has
+    Depot ||--o{ Driver : has
+    Depot ||--o{ Route : has
+    Route ||--o{ RouteStop : has
+    Vehicle ||--o{ Dispatch : assigned
+    Driver ||--o{ Dispatch : assigned
+    Route ||--o{ Dispatch : assigned
+    User ||--o{ RefreshToken : has
+```
+
+### Auth akışı
+
+```mermaid
+flowchart TD
+    A[Login] --> B[Access token: kısa ömürlü JWT]
+    A --> C[Refresh token: DB'de hash'li, httpOnly cookie]
+    B -->|süresi dolar| D{Refresh token geçerli mi?}
+    D -->|evet| E[Rotate: yeni access + yeni refresh token]
+    D -->|hayır| F[Zorla logout]
+```
+
+## Tech Stack
+
+- **Framework:** Next.js 15 (App Router), TypeScript (strict)
+- **Veritabanı:** PostgreSQL (Neon) + Prisma ORM
+- **Auth:** Auth.js v5 (Credentials provider + bcrypt), özel refresh token akışı
+- **UI:** Tailwind CSS, AG Grid Community (v33+ Theming API), react-leaflet
+- **Validasyon:** Zod
+- **İzleme:** Sentry
+- **CI/CD:** GitHub Actions, Husky pre-commit hooks
+- **Deploy:** Vercel
 
 ## Kurulum
 
 ```bash
+git clone https://github.com/dogukanacet/trekker.git
+cd trekker
 npm install
-cp .env.example .env   # DATABASE_URL ve AUTH_SECRET'ı doldur
-npx prisma migrate dev --name init
-npm run dev
 ```
 
-## Komutlar
+`.env` dosyasını oluştur (`.env.example`'ı referans al) ve şu değişkenleri doldur:
 
-- `npm run dev` — geliştirme sunucusu
-- `npm run lint` / `npm run format` — kod kalitesi
-- `npm run prisma:generate` / `npm run prisma:migrate` — veritabanı şeması
+Veritabanını hazırla ve test kullanıcısı oluştur:
 
-## Mimari Notlar
+```bash
+npx prisma migrate dev
+npm run seed
+```
 
-- **Multi-tenant:** `Tenant -> Depot -> Vehicle/Driver` hiyerarşisi (`prisma/schema.prisma`)
-- **Auth:** `src/lib/auth.ts` — Credentials provider iskeleti, JWT'ye tenantId/role eklenmesi TODO
-- **Rota/harita:** Hafta 3'te düz lat/lng + Leaflet ile başlanacak; PostGIS bilinçli olarak ertelendi
+Geliştirme sunucusunu başlat:
+
+```bash
+npm run dev
+```
