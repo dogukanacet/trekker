@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Truck, Users, Route as RouteIcon, ClipboardList } from "lucide-react";
+import { typography } from "@/lib/constants";
 
 export default async function Home() {
   const session = await auth();
@@ -23,44 +26,36 @@ export default async function Home() {
   });
 
   const cards = [
-    { label: "Araç", count: vehicleCount, href: "/vehicles", color: "bg-blue-50 text-blue-700" },
-    { label: "Sürücü", count: driverCount, href: "/drivers", color: "bg-green-50 text-green-700" },
-    { label: "Rota", count: routeCount, href: "/routes", color: "bg-amber-50 text-amber-700" },
-    {
-      label: "Bugünkü Sevkiyat",
-      count: dispatchCount,
-      href: "/dispatches",
-      color: "bg-purple-50 text-purple-700",
-    },
+    { label: "Araç", count: vehicleCount, href: "/vehicles", icon: Truck },
+    { label: "Sürücü", count: driverCount, href: "/drivers", icon: Users },
+    { label: "Rota", count: routeCount, href: "/routes", icon: RouteIcon },
+    { label: "Bugünkü Sevkiyat", count: dispatchCount, href: "/dispatches", icon: ClipboardList },
   ];
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Trekker</h1>
-            <p className="mt-1 text-gray-500">Filo yönetim paneline hoş geldin.</p>
-          </div>
-        </div>
-
-        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {cards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md"
-            >
-              <div
-                className={`inline-flex rounded-md px-2 py-1 text-xs font-semibold ${card.color}`}
-              >
-                {card.label}
-              </div>
-              <p className="mt-3 text-3xl font-bold text-gray-900">{card.count}</p>
-            </Link>
-          ))}
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className={typography.pageTitle}>Trekker</h1>
+        <p className={typography.secondary}>Filo yönetim paneline hoş geldin.</p>
       </div>
-    </main>
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <Link key={card.href} href={card.href}>
+              <Card className="transition hover:shadow-md hover:border-primary/30">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className={typography.secondary}>{card.label}</CardTitle>
+                  <Icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <p className="text-3xl font-bold">{card.count}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
   );
 }
