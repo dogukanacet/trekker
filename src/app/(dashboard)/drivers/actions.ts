@@ -11,10 +11,10 @@ const driverSchema = z.object({
   licenseUntil: z.coerce.date(),
 });
 
-export const createDriver = async (data: FormData) => {
+export const createDriver = async (prevState: { error: string | null }, data: FormData) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated" };
   }
 
   const depotId = data.get("depotId") as string;
@@ -31,7 +31,7 @@ export const createDriver = async (data: FormData) => {
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    throw new Error(`Validation failed: ${errorMessages}`);
+    return { error: `Validation failed: ${errorMessages}` };
   }
 
   const depot = await prisma.depot.findFirst({
@@ -39,7 +39,7 @@ export const createDriver = async (data: FormData) => {
   });
 
   if (!depot) {
-    throw new Error("Depot not found or does not belong to the user's tenant");
+    return { error: "Depot not found or does not belong to the user's tenant" };
   }
 
   await prisma.driver.create({
@@ -50,6 +50,8 @@ export const createDriver = async (data: FormData) => {
     },
   });
   revalidatePath("/drivers");
+
+  return { error: null };
 };
 
 export const updateDriver = async (
@@ -59,7 +61,7 @@ export const updateDriver = async (
 ) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated" };
   }
 
   const depotId = data.get("depotId") as string;
@@ -83,7 +85,7 @@ export const updateDriver = async (
   });
 
   if (!depot) {
-    throw new Error("Depot not found or does not belong to the user's tenant");
+    return { error: "Depot not found or does not belong to the user's tenant" };
   }
 
   await prisma.driver.update({

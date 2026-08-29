@@ -1,87 +1,139 @@
 "use client";
 
-import React, { useState, useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import type { Driver, Depot } from "@prisma/client";
 import * as driverActions from "@/app/(dashboard)/drivers/actions";
+import { TableCell, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Pencil, Trash2 } from "lucide-react";
 
 const DriverRow = ({ driver, depotList }: { driver: Driver; depotList: Depot[] }) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [actionState, formAction, isPending] = useActionState(
     driverActions.updateDriver.bind(null, driver.id),
     { error: null },
   );
 
   useEffect(() => {
-    if (!actionState.error) setIsEditing(false);
-  }, [actionState.error]);
+    if (!isPending && actionState.error === null) setIsEditOpen(false);
+  }, [actionState, isPending]);
 
-  const updateDriverForm = () => {
-    return (
-      <form
-        action={formAction}
-        style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
-      >
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="text"
-          name="fullName"
-          defaultValue={driver.fullName}
-          placeholder="fullName"
-        />
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="date"
-          name="licenseUntil"
-          defaultValue={driver.licenseUntil ? driver.licenseUntil.toISOString().split("T")[0] : ""}
-          placeholder="License Until"
-        />
-        <select
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          name="depotId"
-          defaultValue={driver.depotId}
-          required
-        >
-          {depotList.map((depot) => (
-            <option key={depot.id} value={depot.id}>
-              {depot.name}
-            </option>
-          ))}
-        </select>
-        <button
-          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-          type="submit"
-          disabled={isPending}
-        >
-          {isPending ? "Updating..." : "Update Driver"}
-        </button>
-      </form>
-    );
-  };
+  const depotName = depotList.find((d) => d.id === driver.depotId)?.name ?? "—";
 
   return (
-    <li className="list-item" key={driver.id}>
-      {driver.fullName} - {driver.depotId}
-      {driver.licenseUntil && (
-        <span> - License Until: {driver.licenseUntil.toLocaleDateString("tr")}</span>
-      )}
-      <button
-        className="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded"
-        onClick={() => setIsEditing(!isEditing)}
-      >
-        Update Driver
-      </button>
-      {isEditing && updateDriverForm()}
-      <form action={driverActions.deleteDriver.bind(null, driver.id)} style={{ display: "inline" }}>
-        <button
-          className="ml-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded"
-          type="submit"
-          disabled={isPending}
-        >
-          Delete Driver
-        </button>
-        {actionState.error && <p className="text-red-500">{actionState.error}</p>}
-      </form>
-    </li>
+    <TableRow>
+      <TableCell>{driver.fullName}</TableCell>
+      <TableCell>{depotName}</TableCell>
+      <TableCell>
+        {driver.licenseUntil ? driver.licenseUntil.toLocaleDateString("tr") : "—"}
+      </TableCell>
+      <TableCell className="text-right space-x-2">
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogTrigger render={<Button variant="ghost" size="icon" />}>
+            <Pencil className="h-4 w-4" />
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sürücüyü Düzenle</DialogTitle>
+            </DialogHeader>
+            <form action={formAction} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor={`fullName-${driver.id}`}>Ad Soyad</Label>
+                <Input
+                  id={`fullName-${driver.id}`}
+                  name="fullName"
+                  defaultValue={driver.fullName}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`licenseUntil-${driver.id}`}>Ehliyet Bitiş Tarihi</Label>
+                <Input
+                  id={`licenseUntil-${driver.id}`}
+                  name="licenseUntil"
+                  type="date"
+                  defaultValue={
+                    driver.licenseUntil ? driver.licenseUntil.toISOString().split("T")[0] : ""
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`depotId-${driver.id}`}>Depo</Label>
+                <Select name="depotId" defaultValue={driver.depotId}>
+                  <SelectTrigger id={`depotId-${driver.id}`}>
+                    <SelectValue>
+                      {(value: string) => depotList.find((d) => d.id === value)?.name}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {depotList.map((depot) => (
+                      <SelectItem key={depot.id} value={depot.id}>
+                        {depot.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {actionState.error && <p className="text-sm text-destructive">{actionState.error}</p>}
+              <DialogFooter>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Güncelleniyor..." : "Kaydet"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog>
+          <AlertDialogTrigger render={<Button variant="ghost" size="icon" />}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sürücüyü sil</AlertDialogTitle>
+              <AlertDialogDescription>
+                {driver.fullName} kalıcı olarak silinecek. Bu işlem geri alınamaz.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+              <form action={driverActions.deleteDriver.bind(null, driver.id)}>
+                <AlertDialogAction type="submit" className="bg-destructive">
+                  Sil
+                </AlertDialogAction>
+              </form>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </TableCell>
+    </TableRow>
   );
 };
 
