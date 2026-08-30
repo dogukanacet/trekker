@@ -1,80 +1,60 @@
 import { prisma } from "@/lib/prisma";
-import * as vehicleActions from "@/app/(dashboard)/vehicles/actions";
-import VehicleRow from "@/app/(dashboard)/vehicles/VehicleRow";
-import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { typography } from "@/lib/constants";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { AddVehicleDialog } from "@/app/(dashboard)/vehicles/AddVehicleDialog";
+import VehicleRow from "@/app/(dashboard)/vehicles/VehicleRow";
 
 const VehiclesPage = async () => {
   const session = await auth();
-  const depotList = await prisma.depot.findMany({
-    where: { tenantId: session?.user?.tenantId },
-  });
-  const vehicleList = await prisma.vehicle.findMany({
-    where: { depot: { tenantId: session?.user?.tenantId } },
-  });
+  const tenantId = session?.user?.tenantId;
 
-  const vehicles = vehicleList.map((vehicle) => (
-    <VehicleRow key={vehicle.id} vehicle={vehicle} depotList={depotList} />
-  ));
+  const depotList = await prisma.depot.findMany({ where: { tenantId } });
+  const vehicleList = await prisma.vehicle.findMany({ where: { depot: { tenantId } } });
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <Link href="/" className="text-blue-500 hover:underline mb-4">
-        Home
-      </Link>
-      <h1 className="text-3xl font-bold">Trekker Vehicles</h1>
-      <div className="mt-2 text-gray-600">
-        vehicle list:{" "}
-        {vehicles.length ? <ul className="list-disc pl-5">{vehicles}</ul> : "No vehicles found."}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={typography.pageTitle}>Araçlar</h1>
+          <p className={typography.secondary}>Filo araçlarını yönet.</p>
+        </div>
+        <AddVehicleDialog depotList={depotList} />
       </div>
-      <form
-        action={vehicleActions.createVehicle}
-        style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "20px" }}
-      >
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="text"
-          name="plate"
-          placeholder="Plate"
-          required
-        />
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="text"
-          name="model"
-          placeholder="Model"
-        />
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="date"
-          name="insuranceUntil"
-          placeholder="Insurance Until"
-        />
-        <input
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          type="date"
-          name="inspectionUntil"
-          placeholder="Inspection Until"
-        />
-        <select
-          className="border border-gray-300 rounded-md py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          name="depotId"
-          required
-        >
-          {depotList.map((depot) => (
-            <option key={depot.id} value={depot.id}>
-              {depot.name}
-            </option>
-          ))}
-        </select>
-        <button
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          type="submit"
-        >
-          Add Vehicle
-        </button>
-      </form>
-    </main>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Plaka</TableHead>
+            <TableHead>Model</TableHead>
+            <TableHead>Depo</TableHead>
+            <TableHead>Sigorta Bitiş</TableHead>
+            <TableHead>Muayene Bitiş</TableHead>
+            <TableHead className="text-right">İşlemler</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {vehicleList.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className={`text-center py-8 ${typography.secondary}`}>
+                Henüz araç eklenmemiş.
+              </TableCell>
+            </TableRow>
+          ) : (
+            vehicleList.map((vehicle) => (
+              <VehicleRow key={vehicle.id} vehicle={vehicle} depotList={depotList} />
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

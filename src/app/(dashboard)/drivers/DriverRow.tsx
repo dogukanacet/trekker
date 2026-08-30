@@ -41,6 +41,10 @@ const DriverRow = ({ driver, depotList }: { driver: Driver; depotList: Depot[] }
     driverActions.updateDriver.bind(null, driver.id),
     { error: null },
   );
+  const [deleteState, deleteAction, isDeletePending] = useActionState(
+    driverActions.deleteDriver.bind(null, driver.id),
+    { error: null },
+  );
 
   useEffect(() => {
     if (!isPending && actionState.error === null) setIsEditOpen(false);
@@ -124,12 +128,19 @@ const DriverRow = ({ driver, depotList }: { driver: Driver; depotList: Depot[] }
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-              <form action={driverActions.deleteDriver.bind(null, driver.id)}>
-                <AlertDialogAction type="submit" className="bg-destructive">
-                  Sil
+              <form action={deleteAction}>
+                <AlertDialogAction
+                  type="submit"
+                  className="bg-destructive"
+                  disabled={isDeletePending}
+                >
+                  {isDeletePending ? "Siliniyor..." : "Sil"}
                 </AlertDialogAction>
               </form>
             </AlertDialogFooter>
+            {deleteState.error && (
+              <p className="text-sm text-destructive mt-2">{deleteState.error}</p>
+            )}
           </AlertDialogContent>
         </AlertDialog>
       </TableCell>

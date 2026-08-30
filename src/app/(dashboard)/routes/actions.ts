@@ -17,30 +17,27 @@ const stopSchema = z.object({
   lng: z.coerce.number().min(1, "Lng is required"),
 });
 
-export const createRoute = async (data: FormData) => {
+export const createRoute = async (prevState: { error: string | null }, data: FormData) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated" };
   }
 
   const depotId = data.get("depotId") as string;
   const name = data.get("name") as string;
-  const validationResult = routeSchema.safeParse({
-    depotId,
-    name,
-  });
+  const validationResult = routeSchema.safeParse({ depotId, name });
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    throw new Error(`Validation failed: ${errorMessages}`);
+    return { error: `Validation failed: ${errorMessages}` };
   }
 
   const depot = await prisma.depot.findFirst({
-    where: { id: validationResult?.data?.depotId, tenantId: session?.user?.tenantId },
+    where: { id: validationResult.data.depotId, tenantId: session?.user?.tenantId },
   });
 
   if (!depot) {
-    throw new Error("Depot not found or does not belong to the user's tenant");
+    return { error: "Depot not found or does not belong to the user's tenant" };
   }
 
   await prisma.route.create({
@@ -50,6 +47,8 @@ export const createRoute = async (data: FormData) => {
     },
   });
   revalidatePath("/routes");
+
+  return { error: null };
 };
 
 export const updateRoute = async (
@@ -95,15 +94,29 @@ export const updateRoute = async (
   return { error: null };
 };
 
-export const deleteRoute = async (routeId: string) => {
+export const deleteRoute = async (routeId: string, prevState: { error: string | null }) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated" };
   }
-  await prisma.route.deleteMany({
-    where: { id: routeId, depot: { tenantId: session?.user?.tenantId } },
-  });
+
+  try {
+    const result = await prisma.route.deleteMany({
+      where: { id: routeId, depot: { tenantId: session?.user?.tenantId } },
+    });
+
+    if (result.count === 0) {
+      return { error: "Rota bulunamadı" };
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("foreign key constraint")) {
+      return { error: "Bu rota geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez." };
+    }
+    throw err;
+  }
+
   revalidatePath("/routes");
+  return { error: null };
 };
 
 export const addStop = async (routeId: string, data: FormData) => {
