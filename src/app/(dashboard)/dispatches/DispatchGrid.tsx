@@ -51,12 +51,18 @@ const DispatchGrid = ({ dispatches }: { dispatches: DispatchRow[] }) => {
     },
   ];
 
+  const trekkerGridTheme = themeQuartz.withParams({
+    accentColor: "#4f46e5",
+    borderRadius: 8,
+    wrapperBorderRadius: 8,
+  });
+
   return (
     <div style={{ height: 500, width: "100%" }}>
       <AgGridReact<DispatchRow>
         rowData={dispatches}
         columnDefs={columnDefs}
-        theme={themeQuartz}
+        theme={trekkerGridTheme}
         defaultColDef={{ flex: 1 }}
       />
     </div>

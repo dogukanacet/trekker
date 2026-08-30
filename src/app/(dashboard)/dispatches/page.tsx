@@ -33,12 +33,7 @@ const DispatchesPage = async () => {
           routeList={routeList}
         />
       </div>
-
-      <Card className="p-0">
-        <CardContent className="p-2">
-          <DispatchGrid dispatches={dispatchList} />
-        </CardContent>
-      </Card>
+      <DispatchGrid dispatches={dispatchList} />
     </div>
   );
 };
