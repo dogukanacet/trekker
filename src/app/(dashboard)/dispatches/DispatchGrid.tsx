@@ -4,11 +4,19 @@ import { AgGridReact } from "ag-grid-react";
 import type { ColDef } from "ag-grid-community";
 import type { Dispatch } from "@prisma/client";
 import { themeQuartz } from "ag-grid-community";
+import { dispatchStatusColors } from "@/lib/status-colors";
 
 type DispatchRow = Dispatch & {
   vehicle?: { plate: string } | null;
   driver?: { fullName: string } | null;
   route?: { name: string } | null;
+};
+
+const statusLabels: Record<Dispatch["status"], string> = {
+  PLANNED: "Planlandı",
+  IN_PROGRESS: "Devam Ediyor",
+  COMPLETED: "Tamamlandı",
+  CANCELLED: "İptal Edildi",
 };
 
 const DispatchGrid = ({ dispatches }: { dispatches: DispatchRow[] }) => {
@@ -28,6 +36,13 @@ const DispatchGrid = ({ dispatches }: { dispatches: DispatchRow[] }) => {
     {
       field: "status",
       headerName: "Durum",
+      cellRenderer: ({ value }: { value: Dispatch["status"] }) => (
+        <span
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${dispatchStatusColors[value]}`}
+        >
+          {statusLabels[value]}
+        </span>
+      ),
     },
     {
       field: "date",

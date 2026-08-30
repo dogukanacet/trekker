@@ -11,25 +11,38 @@ const dispatchSchema = z.object({
   vehicleId: z.string().min(1, "Vehicle ID is required"),
 });
 
-export const createDispatch = async (data: FormData) => {
+export const createDispatch = async (prevState: { error: string | null }, data: FormData) => {
   const session = await auth();
-  if (!session) {
-    throw new Error("User is not authenticated");
+  const tenantId = session?.user?.tenantId;
+  if (!session || !tenantId) {
+    return { error: "User is not authenticated" };
   }
 
   const routeId = data.get("routeId") as string;
   const driverId = data.get("driverId") as string;
   const vehicleId = data.get("vehicleId") as string;
 
-  const validationResult = dispatchSchema.safeParse({
-    routeId,
-    vehicleId,
-    driverId,
-  });
+  const validationResult = dispatchSchema.safeParse({ routeId, vehicleId, driverId });
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    throw new Error(`Validation failed: ${errorMessages}`);
+    return { error: `Validation failed: ${errorMessages}` };
+  }
+
+  const [vehicle, driver, route] = await Promise.all([
+    prisma.vehicle.findFirst({
+      where: { id: validationResult.data.vehicleId, depot: { tenantId } },
+    }),
+    prisma.driver.findFirst({
+      where: { id: validationResult.data.driverId, depot: { tenantId } },
+    }),
+    prisma.route.findFirst({
+      where: { id: validationResult.data.routeId, depot: { tenantId } },
+    }),
+  ]);
+
+  if (!vehicle || !driver || !route) {
+    return { error: "Araç, sürücü veya rota bulunamadı ya da bu firmaya ait değil" };
   }
 
   await prisma.dispatch.create({
@@ -39,5 +52,7 @@ export const createDispatch = async (data: FormData) => {
       driverId: validationResult.data.driverId,
     },
   });
-  revalidatePath("/drivers");
+  revalidatePath("/dispatches");
+
+  return { error: null };
 };
