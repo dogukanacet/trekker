@@ -2,7 +2,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import * as routeActions from "@/app/(dashboard)/routes/actions";
+import { ArrowLeft } from "lucide-react";
+import { typography } from "@/lib/constants";
 import RouteExplorer from "./RouteExplorer";
 
 export default async function RouteDetailPage({
@@ -23,59 +24,18 @@ export default async function RouteDetailPage({
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="mx-auto max-w-4xl">
-        <Link href="/routes" className="text-blue-500 hover:underline">
-          ← Rotalara Dön
+    <div className="space-y-6">
+      <div>
+        <Link
+          href="/routes"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Rotalara Dön
         </Link>
-
-        <h1 className="mt-2 text-3xl font-bold text-gray-900">{routeData.name}</h1>
-        <RouteExplorer stops={routeData.stops} routeId={routeData.id} />
-        <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Yeni Durak Ekle</h2>
-          <form
-            action={routeActions.addStop.bind(null, routeId)}
-            className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
-          >
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700">Durak Adı</label>
-              <input
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                type="text"
-                name="label"
-                placeholder="ör. Merkez Depo"
-                required
-              />
-            </div>
-            <div className="w-full sm:w-32">
-              <label className="block text-sm font-medium text-gray-700">Lat</label>
-              <input
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                type="number"
-                name="lat"
-                step="any"
-                required
-              />
-            </div>
-            <div className="w-full sm:w-32">
-              <label className="block text-sm font-medium text-gray-700">Lng</label>
-              <input
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                type="number"
-                name="lng"
-                step="any"
-                required
-              />
-            </div>
-            <button
-              className="rounded-md bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
-              type="submit"
-            >
-              Ekle
-            </button>
-          </form>
-        </div>
+        <h1 className={`${typography.pageTitle} mt-2`}>{routeData.name}</h1>
       </div>
-    </main>
+      <RouteExplorer stops={routeData.stops} routeId={routeData.id} />
+    </div>
   );
 }
