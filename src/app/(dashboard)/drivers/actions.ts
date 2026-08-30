@@ -101,13 +101,27 @@ export const updateDriver = async (
   return { error: null };
 };
 
-export const deleteDriver = async (driverId: string) => {
+export const deleteDriver = async (driverId: string, prevState: { error: string | null }) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated" };
   }
-  await prisma.driver.deleteMany({
-    where: { id: driverId, depot: { tenantId: session?.user?.tenantId } },
-  });
+
+  try {
+    const result = await prisma.driver.deleteMany({
+      where: { id: driverId, depot: { tenantId: session?.user?.tenantId } },
+    });
+
+    if (result.count === 0) {
+      return { error: "Sürücü bulunamadı" };
+    }
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("foreign key constraint")) {
+      return { error: "Bu sürücü geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez." };
+    }
+    throw err;
+  }
+
   revalidatePath("/drivers");
+  return { error: null };
 };
