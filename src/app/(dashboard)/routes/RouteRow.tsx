@@ -35,21 +35,37 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil, Trash2, Eye } from "lucide-react";
+import { toast } from "sonner";
 
 const RouteRow = ({ route, depotList }: { route: Route; depotList: Depot[] }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [updateState, updateAction, isUpdatePending] = useActionState(
     routeActions.updateRoute.bind(null, route.id),
-    { error: null },
+    { error: null, success: false },
   );
-  const [deleteState, deleteAction, isDeletePending] = useActionState(
-    routeActions.deleteRoute.bind(null, route.id),
-    { error: null },
-  );
+  const [isDeletePending, setIsDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isUpdatePending && updateState.error === null) setIsEditOpen(false);
-  }, [updateState, isUpdatePending]);
+    if (updateState.success) {
+      toast.success("Rota başarıyla güncellendi");
+      setIsEditOpen(false);
+    }
+  }, [updateState.success]);
+
+  const handleDelete = async () => {
+    setIsDeletePending(true);
+    const result = await routeActions.deleteRoute(route.id, { error: null, success: false });
+    setIsDeletePending(false);
+
+    if (result.error) {
+      setDeleteError(result.error);
+    } else {
+      toast.success("Rota başarıyla silindi");
+      setIsDeleteOpen(false);
+    }
+  };
 
   const depotName = depotList.find((d) => d.id === route.depotId)?.name ?? "—";
 
@@ -102,7 +118,7 @@ const RouteRow = ({ route, depotList }: { route: Route; depotList: Depot[] }) =>
           </DialogContent>
         </Dialog>
 
-        <AlertDialog>
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <AlertDialogTrigger render={<Button variant="ghost" size="icon" />}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </AlertDialogTrigger>
@@ -113,19 +129,24 @@ const RouteRow = ({ route, depotList }: { route: Route; depotList: Depot[] }) =>
                 {route.name} kalıcı olarak silinecek. Bu işlem geri alınamaz.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            {deleteState.error && <p className="text-sm text-destructive">{deleteState.error}</p>}
-            <AlertDialogFooter>
-              <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-              <form action={deleteAction}>
-                <AlertDialogAction
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
+              <AlertDialogFooter>
+                <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                <Button
                   type="submit"
-                  className="bg-destructive"
+                  className="bg-destructive hover:bg-destructive/90"
                   disabled={isDeletePending}
                 >
                   {isDeletePending ? "Siliniyor..." : "Sil"}
-                </AlertDialogAction>
-              </form>
-            </AlertDialogFooter>
+                </Button>
+              </AlertDialogFooter>
+              {deleteError && <p className="text-sm text-destructive mt-2">{deleteError}</p>}
+            </form>
           </AlertDialogContent>
         </AlertDialog>
       </TableCell>

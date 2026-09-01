@@ -11,10 +11,13 @@ const driverSchema = z.object({
   licenseUntil: z.coerce.date(),
 });
 
-export const createDriver = async (prevState: { error: string | null }, data: FormData) => {
+export const createDriver = async (
+  prevState: { error: string | null; success: boolean },
+  data: FormData,
+) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   const depotId = data.get("depotId") as string;
@@ -31,7 +34,7 @@ export const createDriver = async (prevState: { error: string | null }, data: Fo
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: `Validation failed: ${errorMessages}` };
+    return { error: `Validation failed: ${errorMessages}`, success: false };
   }
 
   const depot = await prisma.depot.findFirst({
@@ -39,7 +42,7 @@ export const createDriver = async (prevState: { error: string | null }, data: Fo
   });
 
   if (!depot) {
-    return { error: "Depot not found or does not belong to the user's tenant" };
+    return { error: "Depot not found or does not belong to the user's tenant", success: false };
   }
 
   await prisma.driver.create({
@@ -51,17 +54,17 @@ export const createDriver = async (prevState: { error: string | null }, data: Fo
   });
   revalidatePath("/drivers");
 
-  return { error: null };
+  return { error: null, success: true };
 };
 
 export const updateDriver = async (
   driverId: string,
-  prevState: { error: string | null },
+  prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   const depotId = data.get("depotId") as string;
@@ -77,7 +80,7 @@ export const updateDriver = async (
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: `Validation failed: ${errorMessages}` };
+    return { error: `Validation failed: ${errorMessages}`, success: false };
   }
 
   const depot = await prisma.depot.findFirst({
@@ -85,7 +88,7 @@ export const updateDriver = async (
   });
 
   if (!depot) {
-    return { error: "Depot not found or does not belong to the user's tenant" };
+    return { error: "Depot not found or does not belong to the user's tenant", success: false };
   }
 
   await prisma.driver.update({
@@ -98,13 +101,16 @@ export const updateDriver = async (
   });
   revalidatePath("/drivers");
 
-  return { error: null };
+  return { error: null, success: true };
 };
 
-export const deleteDriver = async (driverId: string, prevState: { error: string | null }) => {
+export const deleteDriver = async (
+  driverId: string,
+  prevState: { error: string | null; success: boolean },
+) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   try {
@@ -113,15 +119,18 @@ export const deleteDriver = async (driverId: string, prevState: { error: string 
     });
 
     if (result.count === 0) {
-      return { error: "Sürücü bulunamadı" };
+      return { error: "Sürücü bulunamadı", success: false };
     }
   } catch (err) {
     if (err instanceof Error && err.message.includes("foreign key constraint")) {
-      return { error: "Bu sürücü geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez." };
+      return {
+        error: "Bu sürücü geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez.",
+        success: false,
+      };
     }
     throw err;
   }
 
   revalidatePath("/drivers");
-  return { error: null };
+  return { error: null, success: true };
 };

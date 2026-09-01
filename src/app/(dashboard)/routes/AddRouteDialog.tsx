@@ -22,16 +22,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export function AddRouteDialog({ depotList }: { depotList: Depot[] }) {
   const [open, setOpen] = useState(false);
-  const [actionState, formAction, isPending] = useActionState(routeActions.createRoute, {
+  const [actionState, formAction] = useActionState(routeActions.createRoute, {
     error: null,
+    success: false,
   });
 
   useEffect(() => {
-    if (!isPending && actionState.error === null) setOpen(false);
-  }, [isPending, actionState]);
+    if (actionState.success) {
+      toast.success("Rota başarıyla eklendi");
+      setOpen(false);
+    }
+  }, [actionState.success]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

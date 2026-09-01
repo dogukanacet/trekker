@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export function AddDispatchDialog({
   vehicleList,
@@ -34,11 +35,15 @@ export function AddDispatchDialog({
   const [open, setOpen] = useState(false);
   const [actionState, formAction, isPending] = useActionState(dispatchActions.createDispatch, {
     error: null,
+    success: false,
   });
 
   useEffect(() => {
-    if (!isPending && actionState.error === null) setOpen(false);
-  }, [isPending, actionState]);
+    if (actionState.success) {
+      toast.success("Sevkiyat başarıyla eklendi");
+      setOpen(false);
+    }
+  }, [actionState.success]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -22,18 +22,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export function AddDriverDialog({ depotList }: { depotList: Depot[] }) {
   const [open, setOpen] = useState(false);
   const [actionState, formAction, isPending] = useActionState(driverActions.createDriver, {
     error: null,
+    success: false,
   });
 
   useEffect(() => {
-    if (!isPending && actionState.error === null && actionState !== undefined) {
+    if (actionState.success) {
+      toast.success("Sürücü başarıyla eklendi");
       setOpen(false);
     }
-  }, [isPending, actionState]);
+  }, [actionState.success]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

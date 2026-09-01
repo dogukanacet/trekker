@@ -11,11 +11,14 @@ const dispatchSchema = z.object({
   vehicleId: z.string().min(1, "Vehicle ID is required"),
 });
 
-export const createDispatch = async (prevState: { error: string | null }, data: FormData) => {
+export const createDispatch = async (
+  prevState: { error: string | null; success: boolean },
+  data: FormData,
+) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   if (!session || !tenantId) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   const routeId = data.get("routeId") as string;
@@ -26,7 +29,7 @@ export const createDispatch = async (prevState: { error: string | null }, data: 
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: `Validation failed: ${errorMessages}` };
+    return { error: `Validation failed: ${errorMessages}`, success: false };
   }
 
   const [vehicle, driver, route] = await Promise.all([
@@ -42,7 +45,10 @@ export const createDispatch = async (prevState: { error: string | null }, data: 
   ]);
 
   if (!vehicle || !driver || !route) {
-    return { error: "Araç, sürücü veya rota bulunamadı ya da bu firmaya ait değil" };
+    return {
+      error: "Araç, sürücü veya rota bulunamadı ya da bu firmaya ait değil",
+      success: false,
+    };
   }
 
   await prisma.dispatch.create({
@@ -54,5 +60,5 @@ export const createDispatch = async (prevState: { error: string | null }, data: 
   });
   revalidatePath("/dispatches");
 
-  return { error: null };
+  return { error: null, success: true };
 };

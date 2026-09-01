@@ -34,21 +34,37 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const VehicleRow = ({ vehicle, depotList }: { vehicle: Vehicle; depotList: Depot[] }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [actionState, formAction, isPending] = useActionState(
     vehicleActions.updateVehicle.bind(null, vehicle.id),
-    { error: null },
+    { error: null, success: false },
   );
+  const [isDeletePending, setIsDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const [deleteState, deleteAction, isDeletePending] = useActionState(
-    vehicleActions.deleteVehicle.bind(null, vehicle.id),
-    { error: null },
-  );
   useEffect(() => {
-    if (!isPending && actionState.error === null) setIsEditOpen(false);
-  }, [actionState, isPending]);
+    if (actionState.success) {
+      toast.success("Araç başarıyla güncellendi");
+      setIsEditOpen(false);
+    }
+  }, [actionState.success]);
+
+  const handleDelete = async () => {
+    setIsDeletePending(true);
+    const result = await vehicleActions.deleteVehicle(vehicle.id, { error: null, success: false });
+    setIsDeletePending(false);
+
+    if (result.error) {
+      setDeleteError(result.error);
+    } else {
+      toast.success("Araç başarıyla silindi");
+      setIsDeleteOpen(false);
+    }
+  };
 
   const depotName = depotList.find((d) => d.id === vehicle.depotId)?.name ?? "—";
 
@@ -132,7 +148,7 @@ const VehicleRow = ({ vehicle, depotList }: { vehicle: Vehicle; depotList: Depot
           </DialogContent>
         </Dialog>
 
-        <AlertDialog>
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <AlertDialogTrigger render={<Button variant="ghost" size="icon" />}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </AlertDialogTrigger>
@@ -143,21 +159,24 @@ const VehicleRow = ({ vehicle, depotList }: { vehicle: Vehicle; depotList: Depot
                 {vehicle.plate} kalıcı olarak silinecek. Bu işlem geri alınamaz.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-              <form action={deleteAction}>
-                <AlertDialogAction
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
+              <AlertDialogFooter>
+                <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                <Button
                   type="submit"
-                  className="bg-destructive"
+                  className="bg-destructive hover:bg-destructive/90"
                   disabled={isDeletePending}
                 >
                   {isDeletePending ? "Siliniyor..." : "Sil"}
-                </AlertDialogAction>
-              </form>
-            </AlertDialogFooter>
-            {deleteState.error && (
-              <p className="text-sm text-destructive mt-2">{deleteState.error}</p>
-            )}
+                </Button>
+              </AlertDialogFooter>
+              {deleteError && <p className="text-sm text-destructive mt-2">{deleteError}</p>}
+            </form>
           </AlertDialogContent>
         </AlertDialog>
       </TableCell>
