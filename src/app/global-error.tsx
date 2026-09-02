@@ -1,22 +1,28 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
-import NextError from "next/error";
-import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle } from "lucide-react";
 
-export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
-  useEffect(() => {
-    Sentry.captureException(error);
-  }, [error]);
-
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body>
-        {/* `NextError` is the default Next.js error page component. Its type
-        definition requires a `statusCode` prop. However, since the App Router
-        does not expose status codes for errors, we simply pass 0 to render a
-        generic error message. */}
-        <NextError statusCode={0} />
+        <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+          <AlertTriangle className="h-10 w-10 text-destructive" />
+          <div>
+            <h1 className="text-lg font-semibold">Bir şeyler ters gitti</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Beklenmeyen bir hata oluştu. Tekrar denemek ister misin?
+            </p>
+          </div>
+          <Button onClick={reset}>Tekrar Dene</Button>
+        </div>
       </body>
     </html>
   );
