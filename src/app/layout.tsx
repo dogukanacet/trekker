@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/app/providers";
 import { SessionRefresher } from "@/app/api/components/SessionRefresher";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Trekker",
@@ -13,8 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr">
       <body>
         <Providers>
-          <SessionRefresher />
           {children}
+          <SessionRefresher />
+          <Toaster />
         </Providers>
       </body>
     </html>

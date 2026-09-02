@@ -22,16 +22,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 export function AddVehicleDialog({ depotList }: { depotList: Depot[] }) {
   const [open, setOpen] = useState(false);
   const [actionState, formAction, isPending] = useActionState(vehicleActions.createVehicle, {
     error: null,
+    success: false,
   });
 
   useEffect(() => {
-    if (!isPending && actionState.error === null) setOpen(false);
-  }, [isPending, actionState]);
+    if (actionState.success) {
+      toast.success("Araç başarıyla eklendi");
+      setOpen(false);
+    }
+  }, [actionState.success]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

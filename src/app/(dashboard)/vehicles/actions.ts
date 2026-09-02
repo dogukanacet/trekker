@@ -13,10 +13,13 @@ const vehicleSchema = z.object({
   inspectionUntil: z.coerce.date().optional(),
 });
 
-export const createVehicle = async (prevState: { error: string | null }, data: FormData) => {
+export const createVehicle = async (
+  prevState: { error: string | null; success: boolean },
+  data: FormData,
+) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   const depotId = data.get("depotId") as string;
@@ -38,7 +41,7 @@ export const createVehicle = async (prevState: { error: string | null }, data: F
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: `Validation failed: ${errorMessages}` };
+    return { error: `Validation failed: ${errorMessages}`, success: false };
   }
 
   const depot = await prisma.depot.findFirst({
@@ -46,7 +49,7 @@ export const createVehicle = async (prevState: { error: string | null }, data: F
   });
 
   if (!depot) {
-    return { error: "Depot not found or does not belong to the user's tenant" };
+    return { error: "Depot not found or does not belong to the user's tenant", success: false };
   }
 
   await prisma.vehicle.create({
@@ -60,17 +63,17 @@ export const createVehicle = async (prevState: { error: string | null }, data: F
   });
   revalidatePath("/vehicles");
 
-  return { error: null };
+  return { error: null, success: true };
 };
 
 export const updateVehicle = async (
   vehicleId: string,
-  prevState: { error: string | null },
+  prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   const depotId = data.get("depotId") as string;
@@ -92,7 +95,7 @@ export const updateVehicle = async (
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: `Validation failed: ${errorMessages}` };
+    return { error: `Validation failed: ${errorMessages}`, success: false };
   }
 
   const depot = await prisma.depot.findFirst({
@@ -100,7 +103,7 @@ export const updateVehicle = async (
   });
 
   if (!depot) {
-    return { error: "Depot not found or does not belong to the user's tenant" };
+    return { error: "Depot not found or does not belong to the user's tenant", success: false };
   }
   await prisma.vehicle.update({
     where: { id: vehicleId },
@@ -113,13 +116,16 @@ export const updateVehicle = async (
     },
   });
   revalidatePath("/vehicles");
-  return { error: null };
+  return { error: null, success: true };
 };
 
-export const deleteVehicle = async (vehicleId: string, prevState: { error: string | null }) => {
+export const deleteVehicle = async (
+  vehicleId: string,
+  prevState: { error: string | null; success: boolean },
+) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   try {
@@ -128,15 +134,18 @@ export const deleteVehicle = async (vehicleId: string, prevState: { error: strin
     });
 
     if (result.count === 0) {
-      return { error: "Araç bulunamadı" };
+      return { error: "Araç bulunamadı", success: false };
     }
   } catch (err) {
     if (err instanceof Error && err.message.includes("foreign key constraint")) {
-      return { error: "Bu araç geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez." };
+      return {
+        error: "Bu araç geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez.",
+        success: false,
+      };
     }
     throw err;
   }
 
   revalidatePath("/vehicles");
-  return { error: null };
+  return { error: null, success: true };
 };

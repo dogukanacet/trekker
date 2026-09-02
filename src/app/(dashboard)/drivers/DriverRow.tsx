@@ -34,21 +34,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const DriverRow = ({ driver, depotList }: { driver: Driver; depotList: Depot[] }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [actionState, formAction, isPending] = useActionState(
     driverActions.updateDriver.bind(null, driver.id),
-    { error: null },
+    { error: null, success: false },
   );
-  const [deleteState, deleteAction, isDeletePending] = useActionState(
-    driverActions.deleteDriver.bind(null, driver.id),
-    { error: null },
-  );
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeletePending, setIsDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isPending && actionState.error === null) setIsEditOpen(false);
-  }, [actionState, isPending]);
+    if (actionState.success) {
+      toast.success("Sürücü başarıyla güncellendi");
+      setIsEditOpen(false);
+    }
+  }, [actionState.success]);
+
+  // deleteDriver aksiyonundan sonra revalidate edildiği için toaster görünmeden önce sayfa yenileniyor. o nedenle actionState yerine normal state kullanıyoruz.
+  const handleDelete = async () => {
+    setIsDeletePending(true);
+    const result = await driverActions.deleteDriver(driver.id, { error: null, success: false });
+    setIsDeletePending(false);
+
+    if (result.error) {
+      setDeleteError(result.error);
+    } else {
+      toast.success("Sürücü başarıyla silindi");
+      setIsDeleteOpen(false);
+    }
+  };
 
   const depotName = depotList.find((d) => d.id === driver.depotId)?.name ?? "—";
 
@@ -115,7 +132,7 @@ const DriverRow = ({ driver, depotList }: { driver: Driver; depotList: Depot[] }
           </DialogContent>
         </Dialog>
 
-        <AlertDialog>
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <AlertDialogTrigger render={<Button variant="ghost" size="icon" />}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </AlertDialogTrigger>
@@ -126,21 +143,24 @@ const DriverRow = ({ driver, depotList }: { driver: Driver; depotList: Depot[] }
                 {driver.fullName} kalıcı olarak silinecek. Bu işlem geri alınamaz.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-              <form action={deleteAction}>
-                <AlertDialogAction
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+            >
+              <AlertDialogFooter>
+                <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                <Button
                   type="submit"
-                  className="bg-destructive"
+                  className="bg-destructive hover:bg-destructive/90"
                   disabled={isDeletePending}
                 >
                   {isDeletePending ? "Siliniyor..." : "Sil"}
-                </AlertDialogAction>
-              </form>
-            </AlertDialogFooter>
-            {deleteState.error && (
-              <p className="text-sm text-destructive mt-2">{deleteState.error}</p>
-            )}
+                </Button>
+              </AlertDialogFooter>
+              {deleteError && <p className="text-sm text-destructive mt-2">{deleteError}</p>}
+            </form>
           </AlertDialogContent>
         </AlertDialog>
       </TableCell>

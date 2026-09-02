@@ -17,10 +17,13 @@ const stopSchema = z.object({
   lng: z.coerce.number().min(1, "Lng is required"),
 });
 
-export const createRoute = async (prevState: { error: string | null }, data: FormData) => {
+export const createRoute = async (
+  prevState: { error: string | null; success: boolean },
+  data: FormData,
+) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   const depotId = data.get("depotId") as string;
@@ -29,7 +32,7 @@ export const createRoute = async (prevState: { error: string | null }, data: For
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: `Validation failed: ${errorMessages}` };
+    return { error: `Validation failed: ${errorMessages}`, success: false };
   }
 
   const depot = await prisma.depot.findFirst({
@@ -37,7 +40,7 @@ export const createRoute = async (prevState: { error: string | null }, data: For
   });
 
   if (!depot) {
-    return { error: "Depot not found or does not belong to the user's tenant" };
+    return { error: "Depot not found or does not belong to the user's tenant", success: false };
   }
 
   await prisma.route.create({
@@ -48,17 +51,17 @@ export const createRoute = async (prevState: { error: string | null }, data: For
   });
   revalidatePath("/routes");
 
-  return { error: null };
+  return { error: null, success: true };
 };
 
 export const updateRoute = async (
   routeId: string,
-  prevState: { error: string | null },
+  prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated", success: false };
   }
 
   const depotId = data.get("depotId") as string;
@@ -71,7 +74,7 @@ export const updateRoute = async (
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: `Validation failed: ${errorMessages}` };
+    return { error: `Validation failed: ${errorMessages}`, success: false };
   }
 
   const depot = await prisma.depot.findFirst({
@@ -79,7 +82,7 @@ export const updateRoute = async (
   });
 
   if (!depot) {
-    throw new Error("Depot not found or does not belong to the user's tenant");
+    return { error: "Depot not found or does not belong to the user's tenant", success: false };
   }
 
   await prisma.route.update({
@@ -91,13 +94,16 @@ export const updateRoute = async (
   });
   revalidatePath("/routes");
 
-  return { error: null };
+  return { error: null, success: true };
 };
 
-export const deleteRoute = async (routeId: string, prevState: { error: string | null }) => {
+export const deleteRoute = async (
+  routeId: string,
+  prevState: { error: string | null; success: boolean },
+) => {
   const session = await auth();
   if (!session) {
-    return { error: "User is not authenticated" };
+    return { error: "User is not authenticated", success: false };
   }
 
   try {
@@ -106,23 +112,26 @@ export const deleteRoute = async (routeId: string, prevState: { error: string | 
     });
 
     if (result.count === 0) {
-      return { error: "Rota bulunamadı" };
+      return { error: "Rota bulunamadı", success: false };
     }
   } catch (err) {
     if (err instanceof Error && err.message.includes("foreign key constraint")) {
-      return { error: "Bu rota geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez." };
+      return {
+        error: "Bu rota geçmiş veya aktif sevkiyatlarla ilişkili olduğu için silinemez.",
+        success: false,
+      };
     }
     throw err;
   }
 
   revalidatePath("/routes");
-  return { error: null };
+  return { error: null, success: true };
 };
 
 export const addStop = async (routeId: string, data: FormData) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated" };
   }
 
   const label = data.get("label") as string;
@@ -137,7 +146,7 @@ export const addStop = async (routeId: string, data: FormData) => {
 
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    throw new Error(`Validation failed: ${errorMessages}`);
+    return { error: `Validation failed: ${errorMessages}` };
   }
 
   const stopCount = await prisma.routeStop.count({ where: { routeId } });
@@ -157,8 +166,9 @@ export const addStop = async (routeId: string, data: FormData) => {
 export const deleteStop = async (stopId: string, routeId: string) => {
   const session = await auth();
   if (!session) {
-    throw new Error("User is not authenticated");
+    return { error: "User is not authenticated" };
   }
+
   await prisma.routeStop.deleteMany({
     where: { id: stopId, route: { depot: { tenantId: session.user?.tenantId } } },
   });
