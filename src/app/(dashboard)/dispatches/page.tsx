@@ -33,7 +33,12 @@ const DispatchesPage = async () => {
           routeList={routeList}
         />
       </div>
-      <DispatchGrid dispatches={dispatchList} />
+      <DispatchGrid
+        vehicleList={vehicleList}
+        driverList={driverList}
+        routeList={routeList}
+        dispatches={dispatchList}
+      />
     </div>
   );
 };
