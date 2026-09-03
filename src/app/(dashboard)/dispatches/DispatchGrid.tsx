@@ -1,10 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef } from "ag-grid-community";
-import type { Dispatch } from "@prisma/client";
+import type { Vehicle, Driver, Route, Dispatch } from "@prisma/client";
 import { themeQuartz } from "ag-grid-community";
 import { dispatchStatusColors } from "@/lib/status-colors";
+import * as dispatchActions from "@/app/(dashboard)/dispatches/actions";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { EditDispatchDialog } from "@/app/(dashboard)/dispatches/EditDispatchDialog";
 
 type DispatchRow = Dispatch & {
   vehicle?: { plate: string } | null;
@@ -19,7 +35,42 @@ const statusLabels: Record<Dispatch["status"], string> = {
   CANCELLED: "İptal Edildi",
 };
 
-const DispatchGrid = ({ dispatches }: { dispatches: DispatchRow[] }) => {
+const trekkerGridTheme = themeQuartz.withParams({
+  accentColor: "#4f46e5",
+  borderRadius: 8,
+  wrapperBorderRadius: 8,
+});
+
+const DispatchGrid = ({
+  dispatches,
+  vehicleList,
+  driverList,
+  routeList,
+}: {
+  dispatches: DispatchRow[];
+  vehicleList: Vehicle[];
+  driverList: Driver[];
+  routeList: Route[];
+}) => {
+  const [editingRow, setEditingRow] = useState<DispatchRow | null>(null);
+  const [rowToDelete, setRowToDelete] = useState<DispatchRow | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!rowToDelete) return;
+    setIsDeleting(true);
+    const result = await dispatchActions.deleteDispatch(rowToDelete.id, {
+      error: null,
+      success: false,
+    });
+    setIsDeleting(false);
+
+    if (result.success) {
+      toast.success("Sevkiyat silindi");
+      setRowToDelete(null);
+    }
+  };
+
   const columnDefs: ColDef<DispatchRow>[] = [
     {
       headerName: "Araç",
@@ -49,23 +100,71 @@ const DispatchGrid = ({ dispatches }: { dispatches: DispatchRow[] }) => {
       headerName: "Tarih",
       valueFormatter: ({ value }) => (value ? new Date(value).toLocaleDateString("tr-TR") : "-"),
     },
+    {
+      headerName: "İşlemler",
+      width: 110,
+      sortable: false,
+      filter: false,
+      cellRenderer: ({ data }: { data: DispatchRow }) => (
+        <div className="mlauto flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setEditingRow(data)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setRowToDelete(data)}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      ),
+    },
   ];
 
-  const trekkerGridTheme = themeQuartz.withParams({
-    accentColor: "#4f46e5",
-    borderRadius: 8,
-    wrapperBorderRadius: 8,
-  });
-
   return (
-    <div style={{ height: 500, width: "100%" }}>
-      <AgGridReact<DispatchRow>
-        rowData={dispatches}
-        columnDefs={columnDefs}
-        theme={trekkerGridTheme}
-        defaultColDef={{ flex: 1 }}
-      />
-    </div>
+    <>
+      <div style={{ height: 500, width: "100%" }}>
+        <AgGridReact<DispatchRow>
+          rowData={dispatches}
+          columnDefs={columnDefs}
+          theme={trekkerGridTheme}
+          defaultColDef={{ flex: 1 }}
+        />
+      </div>
+
+      {editingRow && (
+        <EditDispatchDialog
+          key={editingRow.id}
+          dispatch={editingRow}
+          open={editingRow !== null}
+          onOpenChange={(open) => !open && setEditingRow(null)}
+          vehicleList={vehicleList}
+          driverList={driverList}
+          routeList={routeList}
+        />
+      )}
+
+      <AlertDialog
+        open={rowToDelete !== null}
+        onOpenChange={(open) => !open && setRowToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sevkiyatı sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu sevkiyat kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive"
+            >
+              {isDeleting ? "Siliniyor..." : "Sil"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
