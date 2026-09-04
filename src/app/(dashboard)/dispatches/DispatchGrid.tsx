@@ -4,7 +4,8 @@ import { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import type { ColDef } from "ag-grid-community";
 import type { Vehicle, Driver, Route, Dispatch } from "@prisma/client";
-import { themeQuartz } from "ag-grid-community";
+import { colorSchemeDark, themeQuartz } from "ag-grid-community";
+import { useTheme } from "next-themes";
 import { dispatchStatusColors } from "@/lib/status-colors";
 import * as dispatchActions from "@/app/(dashboard)/dispatches/actions";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,24 @@ const statusLabels: Record<Dispatch["status"], string> = {
 
 const trekkerGridTheme = themeQuartz.withParams({
   accentColor: "#4f46e5",
+  backgroundColor: "var(--card)",
+  chromeBackgroundColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
+  foregroundColor: "var(--foreground)",
+  borderColor: "var(--border)",
+  headerTextColor: "var(--foreground)",
+  rowHoverColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
+  borderRadius: 8,
+  wrapperBorderRadius: 8,
+});
+
+const trekkerGridDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
+  accentColor: "#818cf8",
+  backgroundColor: "var(--card)",
+  chromeBackgroundColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
+  foregroundColor: "var(--foreground)",
+  borderColor: "var(--border)",
+  headerTextColor: "var(--foreground)",
+  rowHoverColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
   borderRadius: 8,
   wrapperBorderRadius: 8,
 });
@@ -52,6 +71,7 @@ const DispatchGrid = ({
   driverList: Driver[];
   routeList: Route[];
 }) => {
+  const { resolvedTheme } = useTheme();
   const [editingRow, setEditingRow] = useState<DispatchRow | null>(null);
   const [rowToDelete, setRowToDelete] = useState<DispatchRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -124,7 +144,7 @@ const DispatchGrid = ({
         <AgGridReact<DispatchRow>
           rowData={dispatches}
           columnDefs={columnDefs}
-          theme={trekkerGridTheme}
+          theme={resolvedTheme === "dark" ? trekkerGridDarkTheme : trekkerGridTheme}
           defaultColDef={{ flex: 1 }}
         />
       </div>
