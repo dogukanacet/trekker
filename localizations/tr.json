@@ -27,7 +27,12 @@
     "darkMode": "Koyu tema",
     "backToDashboard": "Panele dön",
     "actions": "İşlemler",
-    "notAvailable": "-"
+    "notAvailable": "-",
+    "searchPlaceholder": "Ara...",
+    "searchByNamePlaceholder": "İsimle ara...",
+    "searchByPlatePlaceholder": "Plaka ile ara...",
+    "allDepots": "Tüm depolar",
+    "clearFilters": "Filtreleri temizle"
   },
   "Vehicles": {
     "title": "Araçlar",

@@ -11,14 +11,25 @@ import {
 } from "@/components/ui/table";
 import { AddRouteDialog } from "@/app/[locale]/(dashboard)/routes/AddRouteDialog";
 import RouteRow from "@/app/[locale]/(dashboard)/routes/RouteRow";
+import RoutesFilterBar from "@/app/[locale]/(dashboard)/routes/RoutesFilterBar";
 import { getTranslations } from "next-intl/server";
 
-const RoutesPage = async () => {
+const RoutesPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; depotId?: string }>;
+}) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
+  const { q, depotId } = await searchParams;
 
   const depotList = await prisma.depot.findMany({ where: { tenantId } });
-  const routeList = await prisma.route.findMany({ where: { depot: { tenantId } } });
+  const routeList = await prisma.route.findMany({
+    where: {
+      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
+      ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
+    },
+  });
   const t = await getTranslations("Routes");
   const common = await getTranslations("Common");
 
@@ -29,6 +40,9 @@ const RoutesPage = async () => {
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <RoutesFilterBar depotList={depotList} />
         <AddRouteDialog depotList={depotList} />
       </div>
 

@@ -11,14 +11,24 @@ import {
 } from "@/components/ui/table";
 import { AddVehicleDialog } from "@/app/[locale]/(dashboard)/vehicles/AddVehicleDialog";
 import VehicleRow from "@/app/[locale]/(dashboard)/vehicles/VehicleRow";
+import VehiclesFilterBar from "@/app/[locale]/(dashboard)/vehicles/VehiclesFilterBar";
 import { getTranslations } from "next-intl/server";
 
-const VehiclesPage = async () => {
+const VehiclesPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; depotId?: string }>;
+}) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
-
+  const { q, depotId } = await searchParams;
   const depotList = await prisma.depot.findMany({ where: { tenantId } });
-  const vehicleList = await prisma.vehicle.findMany({ where: { depot: { tenantId } } });
+  const vehicleList = await prisma.vehicle.findMany({
+    where: {
+      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
+      ...(q ? { plate: { contains: q, mode: "insensitive" } } : {}),
+    },
+  });
   const t = await getTranslations("Vehicles");
   const common = await getTranslations("Common");
 
@@ -29,9 +39,11 @@ const VehiclesPage = async () => {
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
+      </div>
+      <div className="flex items-center justify-between">
+        <VehiclesFilterBar depotList={depotList} />
         <AddVehicleDialog depotList={depotList} />
       </div>
-
       <Table>
         <TableHeader>
           <TableRow>
