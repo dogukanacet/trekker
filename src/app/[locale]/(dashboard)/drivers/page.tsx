@@ -9,27 +9,49 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ColumnHeader } from "@/components/ui/data-table/column-header";
+import { buildOrderBy } from "@/lib/build-order-by";
 import { AddDriverDialog } from "@/app/[locale]/(dashboard)/drivers/AddDriverDialog";
 import DriverRow from "@/app/[locale]/(dashboard)/drivers/DriverRow";
-import DriversFilterBar from "@/app/[locale]/(dashboard)/drivers/DriversFilterBar";
 import { getTranslations } from "next-intl/server";
 
 const DriversPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; depotId?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    depotId?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    licenseUntilFrom?: string;
+    licenseUntilTo?: string;
+  }>;
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
-  const { q, depotId } = await searchParams;
+  const { q, depotId, sortBy, sortOrder, licenseUntilFrom, licenseUntilTo } = await searchParams;
+  const driverSortKeys = ["fullName", "licenseUntil"] as const;
+
   const depotList = await prisma.depot.findMany({
     where: { tenantId },
   });
   const driverList = await prisma.driver.findMany({
     where: {
-      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
+      depot: {
+        tenantId,
+        ...(depotId ? { id: depotId } : {}),
+      },
       ...(q ? { fullName: { contains: q, mode: "insensitive" } } : {}),
+      ...(licenseUntilFrom || licenseUntilTo
+        ? {
+            licenseUntil: {
+              ...(licenseUntilFrom ? { gte: new Date(licenseUntilFrom) } : {}),
+              ...(licenseUntilTo ? { lte: new Date(licenseUntilTo) } : {}),
+            },
+          }
+        : {}),
     },
+    orderBy: buildOrderBy(driverSortKeys, "fullName", sortBy, sortOrder),
   });
   const t = await getTranslations("Drivers");
   const common = await getTranslations("Common");
@@ -43,15 +65,41 @@ const DriversPage = async ({
         </div>
       </div>
       <div className="flex flex-center justify-between">
-        <DriversFilterBar depotList={depotList} />
         <AddDriverDialog depotList={depotList} />
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("depot")}</TableHead>
-            <TableHead>{t("licenseUntil")}</TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("name")}
+                sortKey="fullName"
+                filter={{ type: "text", key: "q", placeholder: common("searchPlaceholder") }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("depot")}
+                filter={{
+                  type: "select",
+                  key: "depotId",
+                  placeholder: common("allDepots"),
+                  options: depotList.map((d) => ({ value: d.id, label: d.name })),
+                }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("licenseUntil")}
+                sortKey="licenseUntil"
+                filter={{
+                  type: "date-range",
+                  key: "licenseUntil",
+                  fromLabel: common("startDate"),
+                  toLabel: common("endDate"),
+                }}
+              />
+            </TableHead>
             <TableHead className="text-right">{common("actions")}</TableHead>
           </TableRow>
         </TableHeader>

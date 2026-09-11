@@ -32,7 +32,11 @@
     "searchByNamePlaceholder": "İsimle ara...",
     "searchByPlatePlaceholder": "Plaka ile ara...",
     "allDepots": "Tüm depolar",
-    "clearFilters": "Filtreleri temizle"
+    "clearFilters": "Filtreleri temizle",
+    "noResults": "Sonuç bulunamadı.",
+    "loading": "Yükleniyor...",
+    "startDate": "Başlangıç tarihi",
+    "endDate": "Bitiş tarihi"
   },
   "Vehicles": {
     "title": "Araçlar",
