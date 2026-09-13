@@ -32,6 +32,7 @@
     "searchByNamePlaceholder": "Search by name...",
     "searchByPlatePlaceholder": "Search by plate...",
     "allDepots": "All Depots",
+    "applyFilters": "Apply filters",
     "clearFilters": "Clear filters",
     "noResults": "No results found.",
     "loading": "Loading...",

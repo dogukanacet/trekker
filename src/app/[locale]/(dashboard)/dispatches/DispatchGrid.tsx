@@ -1,11 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { AgGridReact } from "ag-grid-react";
-import type { ColDef } from "ag-grid-community";
+import { useRef, useState } from "react";
 import type { Vehicle, Driver, Route, Dispatch } from "@prisma/client";
-import { colorSchemeDark, themeQuartz } from "ag-grid-community";
-import { useTheme } from "next-themes";
 import { dispatchStatusColors } from "@/lib/status-colors";
 import * as dispatchActions from "@/app/[locale]/(dashboard)/dispatches/actions";
 import { Button } from "@/components/ui/button";
@@ -23,36 +19,19 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EditDispatchDialog } from "@/app/[locale]/(dashboard)/dispatches/EditDispatchDialog";
 import { useTranslations } from "next-intl";
+import {
+  DataGrid,
+  StatusFilter,
+  useGridQuerySync,
+  type ColDef,
+  type AgGridReact,
+} from "@/components/data-grid";
 
 type DispatchRow = Dispatch & {
   vehicle?: { plate: string } | null;
   driver?: { fullName: string } | null;
   route?: { name: string } | null;
 };
-
-const trekkerGridTheme = themeQuartz.withParams({
-  accentColor: "#4f46e5",
-  backgroundColor: "var(--card)",
-  chromeBackgroundColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
-  foregroundColor: "var(--foreground)",
-  borderColor: "var(--border)",
-  headerTextColor: "var(--foreground)",
-  rowHoverColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
-  borderRadius: 8,
-  wrapperBorderRadius: 8,
-});
-
-const trekkerGridDarkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
-  accentColor: "#818cf8",
-  backgroundColor: "var(--card)",
-  chromeBackgroundColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
-  foregroundColor: "var(--foreground)",
-  borderColor: "var(--border)",
-  headerTextColor: "var(--foreground)",
-  rowHoverColor: "color-mix(in oklch, var(--muted) 50%, transparent)",
-  borderRadius: 8,
-  wrapperBorderRadius: 8,
-});
 
 const DispatchGrid = ({
   dispatches,
@@ -65,12 +44,14 @@ const DispatchGrid = ({
   driverList: Driver[];
   routeList: Route[];
 }) => {
-  const { resolvedTheme } = useTheme();
   const t = useTranslations("Dispatches");
   const common = useTranslations("Common");
   const [editingRow, setEditingRow] = useState<DispatchRow | null>(null);
   const [rowToDelete, setRowToDelete] = useState<DispatchRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const gridRef = useRef<AgGridReact>(null);
+  const { applyInitialState, handleSortChanged, handleFilterChanged } = useGridQuerySync(gridRef);
 
   const handleConfirmDelete = async () => {
     if (!rowToDelete) return;
@@ -87,51 +68,68 @@ const DispatchGrid = ({
     }
   };
 
+  const statusOptions = [
+    { value: "PLANNED", label: t("planned") },
+    { value: "IN_PROGRESS", label: t("inProgress") },
+    { value: "COMPLETED", label: t("completed") },
+    { value: "CANCELLED", label: t("cancelled") },
+  ];
+
   const columnDefs: ColDef<DispatchRow>[] = [
     {
+      colId: "vehiclePlate",
       headerName: t("vehicle"),
       valueGetter: ({ data }) => data?.vehicle?.plate ?? common("notAvailable"),
+      filterValueGetter: ({ data }) => (data as DispatchRow)?.vehicle?.plate ?? "",
+      filter: "agTextColumnFilter",
+      sortable: false,
     },
     {
+      colId: "driverName",
       headerName: t("driver"),
       valueGetter: ({ data }) => data?.driver?.fullName ?? common("notAvailable"),
+      filterValueGetter: ({ data }) => (data as DispatchRow)?.driver?.fullName ?? "",
+      filter: "agTextColumnFilter",
+      sortable: false,
     },
     {
+      colId: "routeName",
       headerName: t("route"),
       valueGetter: ({ data }) => data?.route?.name ?? common("notAvailable"),
+      filterValueGetter: ({ data }) => (data as DispatchRow)?.route?.name ?? "",
+      filter: "agTextColumnFilter",
+      sortable: false,
     },
     {
       field: "status",
       headerName: t("status"),
+      sortable: true,
+      filter: StatusFilter,
+      filterParams: { options: statusOptions },
       cellRenderer: ({ value }: { value: Dispatch["status"] }) => (
         <span
           className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${dispatchStatusColors[value]}`}
         >
-          {t(
-            value === "PLANNED"
-              ? "planned"
-              : value === "IN_PROGRESS"
-                ? "inProgress"
-                : value === "COMPLETED"
-                  ? "completed"
-                  : "cancelled",
-          )}
+          {statusOptions.find((o) => o.value === value)?.label}
         </span>
       ),
     },
     {
       field: "date",
       headerName: t("date"),
+      sortable: true,
+      filter: "agDateColumnFilter",
       valueFormatter: ({ value }) =>
         value ? new Date(value).toLocaleDateString() : common("notAvailable"),
     },
     {
+      colId: "actions",
       headerName: common("actions"),
       width: 110,
       sortable: false,
       filter: false,
       cellRenderer: ({ data }: { data: DispatchRow }) => (
-        <div className="mlauto flex items-center gap-1">
+        <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" onClick={() => setEditingRow(data)}>
             <Pencil className="h-4 w-4" />
           </Button>
@@ -145,14 +143,14 @@ const DispatchGrid = ({
 
   return (
     <>
-      <div style={{ height: 500, width: "100%" }}>
-        <AgGridReact<DispatchRow>
-          rowData={dispatches}
-          columnDefs={columnDefs}
-          theme={resolvedTheme === "dark" ? trekkerGridDarkTheme : trekkerGridTheme}
-          defaultColDef={{ flex: 1 }}
-        />
-      </div>
+      <DataGrid
+        ref={gridRef}
+        rowData={dispatches}
+        columnDefs={columnDefs}
+        onGridReady={() => applyInitialState()}
+        onSortChanged={handleSortChanged}
+        onFilterChanged={handleFilterChanged}
+      />
 
       {editingRow && (
         <EditDispatchDialog
