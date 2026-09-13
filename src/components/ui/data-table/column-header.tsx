@@ -46,10 +46,20 @@ export function ColumnHeader({
 
   const handleSort = () => {
     if (!sortKey) return;
-    const nextOrder = isSortActive && currentSortOrder === "asc" ? "desc" : "asc";
+
     const params = new URLSearchParams(searchParams.toString());
-    params.set("sortBy", sortKey);
-    params.set("sortOrder", nextOrder);
+
+    if (isSortActive && currentSortOrder === "asc") {
+      params.set("sortBy", sortKey);
+      params.set("sortOrder", "desc");
+    } else if (isSortActive && currentSortOrder === "desc") {
+      params.delete("sortBy");
+      params.delete("sortOrder");
+    } else {
+      params.set("sortBy", sortKey);
+      params.set("sortOrder", "asc");
+    }
+
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
@@ -162,7 +172,11 @@ function FilterControl({ filter }: { filter: ColumnFilterConfig }) {
 
       const toggle = (value: string) => {
         const next = new Set(selected);
-        next.has(value) ? next.delete(value) : next.add(value);
+        if (next.has(value)) {
+          next.delete(value);
+        } else {
+          next.add(value);
+        }
         setParam(next.size > 0 ? Array.from(next).join(",") : null);
       };
 
@@ -206,9 +220,12 @@ function TextFilter({
   const [value, setValue] = useState(initialValue);
 
   useEffect(() => {
-    const timeout = setTimeout(() => onChange(value || null), 400);
+    const timeout = setTimeout(() => {
+      onChange(value || null);
+    }, 400);
+
     return () => clearTimeout(timeout);
-  }, [value]);
+  }, [value, onChange]);
 
   return (
     <Input
@@ -238,8 +255,19 @@ function DateRangeFilter({
 
   const setRange = (from: string, to: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    from ? params.set(fromKey, from) : params.delete(fromKey);
-    to ? params.set(toKey, to) : params.delete(toKey);
+
+    if (from) {
+      params.set(fromKey, from);
+    } else {
+      params.delete(fromKey);
+    }
+
+    if (to) {
+      params.set(toKey, to);
+    } else {
+      params.delete(toKey);
+    }
+
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 

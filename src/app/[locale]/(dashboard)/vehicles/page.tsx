@@ -9,25 +9,50 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ColumnHeader } from "@/components/ui/data-table/column-header";
+import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
+import { buildOrderBy } from "@/lib/build-order-by";
 import { AddVehicleDialog } from "@/app/[locale]/(dashboard)/vehicles/AddVehicleDialog";
 import VehicleRow from "@/app/[locale]/(dashboard)/vehicles/VehicleRow";
-import VehiclesFilterBar from "@/app/[locale]/(dashboard)/vehicles/VehiclesFilterBar";
 import { getTranslations } from "next-intl/server";
 
 const VehiclesPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; depotId?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    model?: string;
+    depotId?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    insuranceUntilFrom?: string;
+    insuranceUntilTo?: string;
+    inspectionUntilFrom?: string;
+    inspectionUntilTo?: string;
+  }>;
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
-  const { q, depotId } = await searchParams;
+  const params = await searchParams;
+  const { depotId, sortBy, sortOrder } = params;
+
+  const vehicleSortKeys = ["plate", "model", "insuranceUntil", "inspectionUntil"] as const;
+
+  const vehicleFilters: FilterFieldConfig[] = [
+    { key: "q", field: "plate", type: "text" },
+    { key: "model", field: "model", type: "text" },
+    { key: "insuranceUntil", field: "insuranceUntil", type: "dateRange" },
+    { key: "inspectionUntil", field: "inspectionUntil", type: "dateRange" },
+  ];
+
   const depotList = await prisma.depot.findMany({ where: { tenantId } });
+
   const vehicleList = await prisma.vehicle.findMany({
     where: {
       depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
-      ...(q ? { plate: { contains: q, mode: "insensitive" } } : {}),
+      ...buildPrismaWhereParams(params, vehicleFilters),
     },
+    orderBy: buildOrderBy(vehicleSortKeys, sortBy, sortOrder),
   });
   const t = await getTranslations("Vehicles");
   const common = await getTranslations("Common");
@@ -41,17 +66,62 @@ const VehiclesPage = async ({
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <VehiclesFilterBar depotList={depotList} />
+        <div />
         <AddVehicleDialog depotList={depotList} />
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t("plate")}</TableHead>
-            <TableHead>{t("model")}</TableHead>
-            <TableHead>{t("depot")}</TableHead>
-            <TableHead>{t("insuranceUntil")}</TableHead>
-            <TableHead>{t("inspectionUntil")}</TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("plate")}
+                sortKey="plate"
+                filter={{ type: "text", key: "q", placeholder: common("searchByPlatePlaceholder") }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("model")}
+                sortKey="model"
+                filter={{ type: "text", key: "model", placeholder: common("searchPlaceholder") }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("depot")}
+                sortKey="depotId"
+                filter={{
+                  type: "select",
+                  key: "depotId",
+                  placeholder: common("allDepots"),
+                  options: depotList.map((d) => ({ value: d.id, label: d.name })),
+                }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("insuranceUntil")}
+                sortKey="insuranceUntil"
+                filter={{
+                  type: "date-range",
+                  key: "insuranceUntil",
+                  fromLabel: common("startDate"),
+                  toLabel: common("endDate"),
+                }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("inspectionUntil")}
+                sortKey="inspectionUntil"
+                filter={{
+                  type: "date-range",
+                  key: "inspectionUntil",
+                  fromLabel: common("startDate"),
+                  toLabel: common("endDate"),
+                }}
+              />
+            </TableHead>
             <TableHead className="text-right">{common("actions")}</TableHead>
           </TableRow>
         </TableHeader>

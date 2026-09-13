@@ -9,26 +9,43 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ColumnHeader } from "@/components/ui/data-table/column-header";
+import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
+import { buildOrderBy } from "@/lib/build-order-by";
 import { AddRouteDialog } from "@/app/[locale]/(dashboard)/routes/AddRouteDialog";
 import RouteRow from "@/app/[locale]/(dashboard)/routes/RouteRow";
-import RoutesFilterBar from "@/app/[locale]/(dashboard)/routes/RoutesFilterBar";
 import { getTranslations } from "next-intl/server";
 
 const RoutesPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; depotId?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    depotId?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+  }>;
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
-  const { q, depotId } = await searchParams;
+  const params = await searchParams;
+  const { depotId, sortBy, sortOrder } = params;
+  const routeSortKeys = ["name", "depotId", "createdAt"] as const;
+  const routeFilters: FilterFieldConfig[] = [
+    { key: "q", field: "name", type: "text" },
+    { key: "depotId", field: "depotId", type: "exact" },
+    { key: "createdAt", field: "createdAt", type: "dateRange" },
+  ];
 
   const depotList = await prisma.depot.findMany({ where: { tenantId } });
   const routeList = await prisma.route.findMany({
     where: {
       depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
-      ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
+      ...buildPrismaWhereParams(params, routeFilters),
     },
+    orderBy: buildOrderBy(routeSortKeys, sortBy, sortOrder),
   });
   const t = await getTranslations("Routes");
   const common = await getTranslations("Common");
@@ -42,16 +59,44 @@ const RoutesPage = async ({
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <RoutesFilterBar depotList={depotList} />
+        <div />
         <AddRouteDialog depotList={depotList} />
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("depot")}</TableHead>
-            <TableHead>{t("createdAt")}</TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("name")}
+                sortKey="name"
+                filter={{ type: "text", key: "q", placeholder: common("searchByNamePlaceholder") }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("depot")}
+                sortKey="depotId"
+                filter={{
+                  type: "select",
+                  key: "depotId",
+                  placeholder: common("allDepots"),
+                  options: depotList.map((d) => ({ value: d.id, label: d.name })),
+                }}
+              />
+            </TableHead>
+            <TableHead>
+              <ColumnHeader
+                label={t("createdAt")}
+                sortKey="createdAt"
+                filter={{
+                  type: "date-range",
+                  key: "createdAt",
+                  fromLabel: common("startDate"),
+                  toLabel: common("endDate"),
+                }}
+              />
+            </TableHead>
             <TableHead className="text-right">{common("actions")}</TableHead>
           </TableRow>
         </TableHeader>

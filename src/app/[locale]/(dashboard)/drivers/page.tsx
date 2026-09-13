@@ -10,10 +10,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ColumnHeader } from "@/components/ui/data-table/column-header";
-import { buildOrderBy } from "@/lib/build-order-by";
 import { AddDriverDialog } from "@/app/[locale]/(dashboard)/drivers/AddDriverDialog";
 import DriverRow from "@/app/[locale]/(dashboard)/drivers/DriverRow";
 import { getTranslations } from "next-intl/server";
+import { buildOrderBy } from "@/lib/build-order-by";
+import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
+
+const driverFilters: FilterFieldConfig[] = [
+  { key: "q", field: "fullName", type: "text" },
+  { key: "licenseUntil", field: "licenseUntil", type: "dateRange" },
+  { key: "depotId", field: "depotId", type: "exact" },
+];
 
 const DriversPage = async ({
   searchParams,
@@ -29,29 +36,19 @@ const DriversPage = async ({
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
-  const { q, depotId, sortBy, sortOrder, licenseUntilFrom, licenseUntilTo } = await searchParams;
-  const driverSortKeys = ["fullName", "licenseUntil"] as const;
+  const params = await searchParams;
+  const { depotId, sortBy, sortOrder } = params;
+  const driverSortKeys = ["fullName", "depotId", "licenseUntil"] as const;
 
   const depotList = await prisma.depot.findMany({
     where: { tenantId },
   });
   const driverList = await prisma.driver.findMany({
     where: {
-      depot: {
-        tenantId,
-        ...(depotId ? { id: depotId } : {}),
-      },
-      ...(q ? { fullName: { contains: q, mode: "insensitive" } } : {}),
-      ...(licenseUntilFrom || licenseUntilTo
-        ? {
-            licenseUntil: {
-              ...(licenseUntilFrom ? { gte: new Date(licenseUntilFrom) } : {}),
-              ...(licenseUntilTo ? { lte: new Date(licenseUntilTo) } : {}),
-            },
-          }
-        : {}),
+      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
+      ...buildPrismaWhereParams(params, driverFilters),
     },
-    orderBy: buildOrderBy(driverSortKeys, "fullName", sortBy, sortOrder),
+    orderBy: buildOrderBy(driverSortKeys, sortBy, sortOrder),
   });
   const t = await getTranslations("Drivers");
   const common = await getTranslations("Common");
@@ -80,6 +77,7 @@ const DriversPage = async ({
             <TableHead>
               <ColumnHeader
                 label={t("depot")}
+                sortKey="depotId"
                 filter={{
                   type: "select",
                   key: "depotId",
