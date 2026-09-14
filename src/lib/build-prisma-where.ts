@@ -4,6 +4,12 @@ export type FilterFieldConfig =
   | { key: string; field: string; type: "in" }
   | { key: string; field: string; type: "dateRange" };
 
+export type SearchParamsFromFilters<T extends readonly { key: string; type: string }[]> = {
+  [
+    K in T[number] as K["type"] extends "dateRange" ? `${K["key"]}From` | `${K["key"]}To` : K["key"]
+  ]?: string;
+};
+
 export function buildPrismaWhereParams(
   searchParams: Record<string, string | undefined>,
   fields: FilterFieldConfig[],

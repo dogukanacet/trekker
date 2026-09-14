@@ -1,42 +1,24 @@
 "use client";
 
 import { useCallback } from "react";
+import type { RefObject } from "react";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import type { AgGridReact } from "ag-grid-react";
-import type { RefObject } from "react";
 
-type StatusFilterModel = { values?: string[] | null };
-type DateFilterModel = { dateFrom?: string | null; dateTo?: string | null };
+export type GridFilterSyncConfig =
+  | { colId: string; type: "text"; paramKey: string }
+  | { colId: string; type: "multiselect"; paramKey: string }
+  | { colId: string; type: "dateRange"; paramKeyFrom: string; paramKeyTo: string };
 
-export function useGridQuerySync(gridRef: RefObject<AgGridReact | null>) {
+export function useGridQuerySync(
+  gridRef: RefObject<AgGridReact | null>,
+  filters: GridFilterSyncConfig[],
+) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const applyFilters = useCallback(() => {
-    gridRef.current?.api?.onFilterChanged();
-  }, [gridRef]);
-
-  const clearFilters = useCallback(() => {
-    const api = gridRef.current?.api;
-    if (!api) return;
-
-    api.setFilterModel(null);
-
-    const params = new URLSearchParams();
-    const sortBy = searchParams.get("sortBy");
-    const sortOrder = searchParams.get("sortOrder");
-
-    if (sortBy) params.set("sortBy", sortBy);
-    if (sortOrder) params.set("sortOrder", sortOrder);
-
-    router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`, {
-      scroll: false,
-    });
-  }, [gridRef, pathname, router, searchParams]);
-
-  // 1. Sayfa yüklendiğinde: URL'deki mevcut filtre/sort'u grid'e uygula
   const applyInitialState = useCallback(async () => {
     const api = gridRef.current?.api;
     if (!api) return;
@@ -50,32 +32,24 @@ export function useGridQuerySync(gridRef: RefObject<AgGridReact | null>) {
       });
     }
 
-    const statusParam = searchParams.get("status");
-    const statusValues = statusParam
-      ? statusParam
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean)
-      : [];
-    if (statusValues.length) {
-      await api.setColumnFilterModel("status", { values: statusValues });
-    }
-
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
-    if (dateFrom || dateTo) {
-      await api.setColumnFilterModel("date", {
-        filterType: "date",
-        type: "inRange",
-        dateFrom: dateFrom ?? null,
-        dateTo: dateTo ?? null,
-      });
+    for (const config of filters) {
+      if (config.type === "text") {
+        const value = searchParams.get(config.paramKey);
+        if (value) await api.setColumnFilterModel(config.colId, value);
+      } else if (config.type === "multiselect") {
+        const value = searchParams.get(config.paramKey);
+        if (value) await api.setColumnFilterModel(config.colId, value.split(","));
+      } else if (config.type === "dateRange") {
+        const from = searchParams.get(config.paramKeyFrom);
+        const to = searchParams.get(config.paramKeyTo);
+        if (from || to)
+          await api.setColumnFilterModel(config.colId, { from: from ?? null, to: to ?? null });
+      }
     }
 
     api.onFilterChanged();
-  }, [gridRef, searchParams]);
+  }, [gridRef, searchParams, filters]);
 
-  // 2. Kullanıcı grid'de sıralama değiştirdiğinde: URL'e yaz
   const handleSortChanged = useCallback(() => {
     const api = gridRef.current?.api;
     if (!api) return;
@@ -94,33 +68,35 @@ export function useGridQuerySync(gridRef: RefObject<AgGridReact | null>) {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [gridRef, router, pathname, searchParams]);
 
-  // 3. Kullanıcı grid'de filtre değiştirdiğinde: URL'e yaz
-  const handleFilterChanged = useCallback(() => {
+  const handleFilterChanged = useCallback(async () => {
     const api = gridRef.current?.api;
     if (!api) return;
 
     const params = new URLSearchParams(searchParams.toString());
 
-    const statusModel = api.getColumnFilterModel("status") as StatusFilterModel | null | undefined;
-    if (statusModel?.values?.length) {
-      params.set("status", statusModel.values.join(","));
-    } else {
-      params.delete("status");
-    }
-
-    const dateModel = api.getColumnFilterModel("date") as DateFilterModel | null | undefined;
-    if (dateModel?.dateFrom || dateModel?.dateTo) {
-      if (dateModel.dateFrom) params.set("dateFrom", dateModel.dateFrom);
-      else params.delete("dateFrom");
-      if (dateModel.dateTo) params.set("dateTo", dateModel.dateTo);
-      else params.delete("dateTo");
-    } else {
-      params.delete("dateFrom");
-      params.delete("dateTo");
+    for (const config of filters) {
+      if (config.type === "text") {
+        const model = await api.getColumnFilterModel(config.colId);
+        model ? params.set(config.paramKey, model as string) : params.delete(config.paramKey);
+      } else if (config.type === "multiselect") {
+        const model = await api.getColumnFilterModel(config.colId);
+        model?.length
+          ? params.set(config.paramKey, (model as string[]).join(","))
+          : params.delete(config.paramKey);
+      } else if (config.type === "dateRange") {
+        const model = (await api.getColumnFilterModel(config.colId)) as {
+          from: string | null;
+          to: string | null;
+        } | null;
+        model?.from
+          ? params.set(config.paramKeyFrom, model.from)
+          : params.delete(config.paramKeyFrom);
+        model?.to ? params.set(config.paramKeyTo, model.to) : params.delete(config.paramKeyTo);
+      }
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [gridRef, router, pathname, searchParams]);
+  }, [gridRef, router, pathname, searchParams, filters]);
 
-  return { applyInitialState, handleSortChanged, handleFilterChanged, applyFilters, clearFilters };
+  return { applyInitialState, handleSortChanged, handleFilterChanged };
 }

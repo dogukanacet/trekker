@@ -21,10 +21,9 @@ import { EditDispatchDialog } from "@/app/[locale]/(dashboard)/dispatches/EditDi
 import { useTranslations } from "next-intl";
 import {
   DataGrid,
-  StatusFilter,
-  useGridQuerySync,
   type ColDef,
-  type AgGridReact,
+  type GridFilterSyncConfig,
+  type FilterType,
 } from "@/components/data-grid";
 
 type DispatchRow = Dispatch & {
@@ -50,9 +49,6 @@ const DispatchGrid = ({
   const [rowToDelete, setRowToDelete] = useState<DispatchRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const gridRef = useRef<AgGridReact>(null);
-  const { applyInitialState, handleSortChanged, handleFilterChanged } = useGridQuerySync(gridRef);
-
   const handleConfirmDelete = async () => {
     if (!rowToDelete) return;
     setIsDeleting(true);
@@ -68,6 +64,14 @@ const DispatchGrid = ({
     }
   };
 
+  const filterSyncConfig: GridFilterSyncConfig[] = [
+    { colId: "vehiclePlate", type: "text", paramKey: "vehiclePlate" },
+    { colId: "driverName", type: "text", paramKey: "driverName" },
+    { colId: "routeName", type: "text", paramKey: "routeName" },
+    { colId: "status", type: "multiselect", paramKey: "status" },
+    { colId: "date", type: "dateRange", paramKeyFrom: "dateFrom", paramKeyTo: "dateTo" },
+  ];
+
   const statusOptions = [
     { value: "PLANNED", label: t("planned") },
     { value: "IN_PROGRESS", label: t("inProgress") },
@@ -80,32 +84,49 @@ const DispatchGrid = ({
       colId: "vehiclePlate",
       headerName: t("vehicle"),
       valueGetter: ({ data }) => data?.vehicle?.plate ?? common("notAvailable"),
-      filterValueGetter: ({ data }) => (data as DispatchRow)?.vehicle?.plate ?? "",
-      filter: "agTextColumnFilter",
       sortable: false,
+      filter: "text" satisfies FilterType,
+      filterParams: {
+        placeholder: t("vehicle"),
+        applyLabel: common("apply"),
+        clearLabel: common("clear"),
+      },
     },
     {
       colId: "driverName",
       headerName: t("driver"),
       valueGetter: ({ data }) => data?.driver?.fullName ?? common("notAvailable"),
-      filterValueGetter: ({ data }) => (data as DispatchRow)?.driver?.fullName ?? "",
-      filter: "agTextColumnFilter",
       sortable: false,
+      filter: "text" satisfies FilterType,
+      filterParams: {
+        placeholder: t("driver"),
+        applyLabel: common("apply"),
+        clearLabel: common("clear"),
+      },
     },
     {
       colId: "routeName",
       headerName: t("route"),
       valueGetter: ({ data }) => data?.route?.name ?? common("notAvailable"),
-      filterValueGetter: ({ data }) => (data as DispatchRow)?.route?.name ?? "",
-      filter: "agTextColumnFilter",
       sortable: false,
+      filter: "text" satisfies FilterType,
+      filterParams: {
+        placeholder: t("route"),
+        applyLabel: common("apply"),
+        clearLabel: common("clear"),
+      },
     },
     {
       field: "status",
       headerName: t("status"),
       sortable: true,
-      filter: StatusFilter,
-      filterParams: { options: statusOptions },
+      comparator: () => 0,
+      filter: "multiselect" satisfies FilterType,
+      filterParams: {
+        options: statusOptions,
+        applyLabel: common("apply"),
+        clearLabel: common("clear"),
+      },
       cellRenderer: ({ value }: { value: Dispatch["status"] }) => (
         <span
           className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${dispatchStatusColors[value]}`}
@@ -118,7 +139,14 @@ const DispatchGrid = ({
       field: "date",
       headerName: t("date"),
       sortable: true,
-      filter: "agDateColumnFilter",
+      comparator: () => 0,
+      filter: "dateRange" satisfies FilterType,
+      filterParams: {
+        fromLabel: common("startDate"),
+        toLabel: common("endDate"),
+        applyLabel: common("apply"),
+        clearLabel: common("clear"),
+      },
       valueFormatter: ({ value }) =>
         value ? new Date(value).toLocaleDateString() : common("notAvailable"),
     },
@@ -140,16 +168,12 @@ const DispatchGrid = ({
       ),
     },
   ];
-
   return (
     <>
-      <DataGrid
-        ref={gridRef}
+      <DataGrid<DispatchRow>
         rowData={dispatches}
         columnDefs={columnDefs}
-        onGridReady={() => applyInitialState()}
-        onSortChanged={handleSortChanged}
-        onFilterChanged={handleFilterChanged}
+        filterSyncConfig={filterSyncConfig}
       />
 
       {editingRow && (
