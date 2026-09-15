@@ -19,12 +19,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EditDispatchDialog } from "@/app/[locale]/(dashboard)/dispatches/EditDispatchDialog";
 import { useTranslations } from "next-intl";
-import {
-  DataGrid,
-  type ColDef,
-  type GridFilterSyncConfig,
-  type FilterType,
-} from "@/components/data-grid";
+import { DataGrid, type GridColumn } from "@/components/data-grid";
 
 type DispatchRow = Dispatch & {
   vehicle?: { plate: string } | null;
@@ -64,14 +59,6 @@ const DispatchGrid = ({
     }
   };
 
-  const filterSyncConfig: GridFilterSyncConfig[] = [
-    { colId: "vehiclePlate", type: "text", paramKey: "vehiclePlate" },
-    { colId: "driverName", type: "text", paramKey: "driverName" },
-    { colId: "routeName", type: "text", paramKey: "routeName" },
-    { colId: "status", type: "multiselect", paramKey: "status" },
-    { colId: "date", type: "dateRange", paramKeyFrom: "dateFrom", paramKeyTo: "dateTo" },
-  ];
-
   const statusOptions = [
     { value: "PLANNED", label: t("planned") },
     { value: "IN_PROGRESS", label: t("inProgress") },
@@ -79,13 +66,12 @@ const DispatchGrid = ({
     { value: "CANCELLED", label: t("cancelled") },
   ];
 
-  const columnDefs: ColDef<DispatchRow>[] = [
+  const columns: GridColumn<DispatchRow>[] = [
     {
       colId: "vehiclePlate",
-      headerName: t("vehicle"),
-      valueGetter: ({ data }) => data?.vehicle?.plate ?? common("notAvailable"),
-      sortable: false,
-      filter: "text" satisfies FilterType,
+      header: t("vehicle"),
+      value: (row) => row.vehicle?.plate ?? common("notAvailable"),
+      filter: "text",
       filterParams: {
         placeholder: t("vehicle"),
         applyLabel: common("apply"),
@@ -94,10 +80,9 @@ const DispatchGrid = ({
     },
     {
       colId: "driverName",
-      headerName: t("driver"),
-      valueGetter: ({ data }) => data?.driver?.fullName ?? common("notAvailable"),
-      sortable: false,
-      filter: "text" satisfies FilterType,
+      header: t("driver"),
+      value: (row) => row.driver?.fullName ?? common("notAvailable"),
+      filter: "text",
       filterParams: {
         placeholder: t("driver"),
         applyLabel: common("apply"),
@@ -106,10 +91,9 @@ const DispatchGrid = ({
     },
     {
       colId: "routeName",
-      headerName: t("route"),
-      valueGetter: ({ data }) => data?.route?.name ?? common("notAvailable"),
-      sortable: false,
-      filter: "text" satisfies FilterType,
+      header: t("route"),
+      value: (row) => row.route?.name ?? common("notAvailable"),
+      filter: "text",
       filterParams: {
         placeholder: t("route"),
         applyLabel: common("apply"),
@@ -117,51 +101,47 @@ const DispatchGrid = ({
       },
     },
     {
-      field: "status",
-      headerName: t("status"),
-      sortable: true,
-      comparator: () => 0,
-      filter: "multiselect" satisfies FilterType,
+      colId: "status",
+      header: t("status"),
+      value: (row) => row.status,
+      filter: "multiselect",
       filterParams: {
         options: statusOptions,
         applyLabel: common("apply"),
         clearLabel: common("clear"),
       },
-      cellRenderer: ({ value }: { value: Dispatch["status"] }) => (
+      render: (row) => (
         <span
-          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${dispatchStatusColors[value]}`}
+          className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${dispatchStatusColors[row.status]}`}
         >
-          {statusOptions.find((o) => o.value === value)?.label}
+          {statusOptions.find((o) => o.value === row.status)?.label}
         </span>
       ),
     },
     {
-      field: "date",
-      headerName: t("date"),
-      sortable: true,
-      comparator: () => 0,
-      filter: "dateRange" satisfies FilterType,
+      colId: "date",
+      header: t("date"),
+      value: (row) => row.date,
+      filter: "dateRange",
       filterParams: {
         fromLabel: common("startDate"),
         toLabel: common("endDate"),
         applyLabel: common("apply"),
         clearLabel: common("clear"),
       },
-      valueFormatter: ({ value }) =>
-        value ? new Date(value).toLocaleDateString() : common("notAvailable"),
+      render: (row) =>
+        row.date ? new Date(row.date).toLocaleDateString() : common("notAvailable"),
     },
     {
       colId: "actions",
-      headerName: common("actions"),
+      header: common("actions"),
       width: 110,
-      sortable: false,
-      filter: false,
-      cellRenderer: ({ data }: { data: DispatchRow }) => (
+      render: (row) => (
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setEditingRow(data)}>
+          <Button variant="ghost" size="icon" onClick={() => setEditingRow(row)}>
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setRowToDelete(data)}>
+          <Button variant="ghost" size="icon" onClick={() => setRowToDelete(row)}>
             <Trash2 className="h-4 w-4 text-destructive" />
           </Button>
         </div>
@@ -170,11 +150,7 @@ const DispatchGrid = ({
   ];
   return (
     <>
-      <DataGrid<DispatchRow>
-        rowData={dispatches}
-        columnDefs={columnDefs}
-        filterSyncConfig={filterSyncConfig}
-      />
+      <DataGrid<DispatchRow> rowData={dispatches} columns={columns} />
 
       {editingRow && (
         <EditDispatchDialog

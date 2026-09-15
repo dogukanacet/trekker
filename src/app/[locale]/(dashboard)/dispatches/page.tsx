@@ -16,7 +16,13 @@ const dispatchFilters = [
   { key: "date", field: "date", type: "dateRange" },
 ] as const satisfies FilterFieldConfig[];
 
-const dispatchSortKeys = ["driverName", "vehiclePlate", "routeName", "status", "date"] as const;
+const dispatchSortKeys = {
+  status: "status",
+  date: "date",
+  vehiclePlate: ["vehicle", "plate"],
+  driverName: ["driver", "fullName"],
+  routeName: ["route", "name"],
+} as const;
 
 type DispatchFilterParams = SearchParamsFromFilters<typeof dispatchFilters>;
 

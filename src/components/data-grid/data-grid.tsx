@@ -3,9 +3,10 @@
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
 import type { ColDef } from "ag-grid-community";
+import { buildColumnDefs, deriveFilterSyncConfig, type GridColumn } from "./columns";
 import { colorSchemeDark, themeQuartz } from "ag-grid-community";
 import { useTheme } from "next-themes";
-import { useGridQuerySync, type GridFilterSyncConfig } from "./use-grid-query-sync";
+import { useGridQuerySync } from "./use-grid-query-sync";
 import { filterRegistry, isRegisteredFilterType } from "./filter-registry";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 
@@ -46,29 +47,24 @@ function resolveColumnDefs<T>(columnDefs: ColDef<T>[]): ColDef<T>[] {
 }
 
 type DataGridProps<T> = Omit<AgGridReactProps<T>, "columnDefs"> & {
-  columnDefs: ColDef<T>[];
-  filterSyncConfig?: GridFilterSyncConfig[];
+  columns: GridColumn<T>[];
 };
 
 function DataGridInner<T>(
-  {
-    columnDefs,
-    filterSyncConfig = [],
-    onGridReady,
-    onSortChanged,
-    onFilterChanged,
-    ...props
-  }: DataGridProps<T>,
+  { columns, onGridReady, onSortChanged, onFilterChanged, ...props }: DataGridProps<T>,
   ref: React.ForwardedRef<AgGridReact<T>>,
 ) {
   const { resolvedTheme } = useTheme();
   const innerRef = useRef<AgGridReact<T>>(null);
   useImperativeHandle(ref, () => innerRef.current as AgGridReact<T>);
 
+  const filterSyncConfig = deriveFilterSyncConfig(columns);
   const { applyInitialState, handleSortChanged, handleFilterChanged } = useGridQuerySync(
     innerRef,
     filterSyncConfig,
   );
+
+  const columnDefs = resolveColumnDefs(buildColumnDefs(columns));
 
   return (
     <div style={{ height: 500, width: "100%" }}>
@@ -77,7 +73,7 @@ function DataGridInner<T>(
         theme={resolvedTheme === "dark" ? darkTheme : lightTheme}
         defaultColDef={{ flex: 1, ...props.defaultColDef }}
         enableFilterHandlers
-        columnDefs={resolveColumnDefs(columnDefs)}
+        columnDefs={columnDefs}
         onGridReady={(event) => {
           applyInitialState();
           onGridReady?.(event);
