@@ -27,7 +27,17 @@
     "darkMode": "Dark mode",
     "backToDashboard": "Back to dashboard",
     "actions": "Actions",
-    "notAvailable": "-"
+    "notAvailable": "-",
+    "searchPlaceholder": "Search...",
+    "searchByNamePlaceholder": "Search by name...",
+    "searchByPlatePlaceholder": "Search by plate...",
+    "allDepots": "All Depots",
+    "apply": "Apply",
+    "clear": "Clear",
+    "noResults": "No results found.",
+    "loading": "Loading...",
+    "startDate": "Start date",
+    "endDate": "End date"
   },
   "Vehicles": {
     "title": "Vehicles",

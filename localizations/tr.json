@@ -27,7 +27,17 @@
     "darkMode": "Koyu tema",
     "backToDashboard": "Panele dön",
     "actions": "İşlemler",
-    "notAvailable": "-"
+    "notAvailable": "-",
+    "searchPlaceholder": "Ara...",
+    "searchByNamePlaceholder": "İsimle ara...",
+    "searchByPlatePlaceholder": "Plaka ile ara...",
+    "allDepots": "Tüm depolar",
+    "apply": "Uygula",
+    "clear": "Temizle",
+    "noResults": "Sonuç bulunamadı.",
+    "loading": "Yükleniyor...",
+    "startDate": "Başlangıç tarihi",
+    "endDate": "Bitiş tarihi"
   },
   "Vehicles": {
     "title": "Araçlar",
