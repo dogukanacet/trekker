@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { EditDispatchDialog } from "@/app/[locale]/(dashboard)/dispatches/EditDispatchDialog";
 import { useTranslations } from "next-intl";
 import { DataGrid, type GridColumn } from "@/components/data-grid";
+import { DispatchDetailPanel } from "./DispatchDetailPanel";
 
 type DispatchRow = Dispatch & {
   vehicle?: { plate: string } | null;
@@ -150,7 +151,13 @@ const DispatchGrid = ({
   ];
   return (
     <>
-      <DataGrid<DispatchRow> rowData={dispatches} columns={columns} />
+      <DataGrid<DispatchRow>
+        rowData={dispatches}
+        columns={columns}
+        getRowKey={(row) => row.id}
+        renderDetail={(row) => <DispatchDetailPanel dispatchId={row.id} />}
+        singleExpand
+      />
 
       {editingRow && (
         <EditDispatchDialog

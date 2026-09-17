@@ -167,3 +167,22 @@ export const deleteDispatch = async (
 
   return { error: null, success: true };
 };
+
+export async function getDispatchDetail(dispatchId: string) {
+  const t = await getTranslations("Errors");
+  const session = await auth();
+  const tenantId = session?.user?.tenantId;
+  if (!session || !tenantId) {
+    return { error: t("unauthenticated"), data: null };
+  }
+
+  const dispatch = await prisma.dispatch.findFirst({
+    where: { id: dispatchId, vehicle: { depot: { tenantId } } },
+  });
+
+  if (!dispatch) {
+    return { error: t("dispatchNotFound"), data: null };
+  }
+
+  return { error: null, data: dispatch };
+}
