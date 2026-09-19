@@ -10,6 +10,8 @@ import {
   SearchParamsFromFilters,
 } from "@/lib/build-prisma-where";
 import { buildOrderBy } from "@/lib/build-order-by";
+import { parsePagination } from "@/lib/pagination";
+import type { Prisma } from "@prisma/client";
 
 const dispatchFilters = [
   { key: "status", field: "status", type: "in" },
@@ -37,37 +39,53 @@ const DispatchesPage = async ({
       routeName?: string;
       sortBy?: string;
       sortOrder?: string;
+      page?: string;
+      pageSize?: string;
     }
   >;
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
 
-  const { depotId, vehiclePlate, driverName, routeName, sortBy, sortOrder, ...restParams } =
-    await searchParams;
+  const {
+    depotId,
+    vehiclePlate,
+    driverName,
+    routeName,
+    sortBy,
+    sortOrder,
+    page: pageParam,
+    pageSize: pageSizeParam,
+    ...restParams
+  } = await searchParams;
 
-  const [vehicleList, driverList, routeList, dispatchList] = await Promise.all([
+  const { page, pageSize, skip, take } = parsePagination({
+    page: pageParam,
+    pageSize: pageSizeParam,
+  });
+
+  const where: Prisma.DispatchWhereInput = {
+    vehicle: {
+      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
+      ...(vehiclePlate ? { plate: { contains: vehiclePlate, mode: "insensitive" } } : {}),
+    },
+    ...(driverName ? { driver: { fullName: { contains: driverName, mode: "insensitive" } } } : {}),
+    ...(routeName ? { route: { name: { contains: routeName, mode: "insensitive" } } } : {}),
+    ...buildPrismaWhereParams(restParams as Record<string, string | undefined>, dispatchFilters),
+  };
+
+  const [vehicleList, driverList, routeList, dispatchList, totalCount] = await Promise.all([
     prisma.vehicle.findMany({ where: { depot: { tenantId } } }),
     prisma.driver.findMany({ where: { depot: { tenantId } } }),
     prisma.route.findMany({ where: { depot: { tenantId } } }),
     prisma.dispatch.findMany({
-      where: {
-        vehicle: {
-          depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
-          ...(vehiclePlate ? { plate: { contains: vehiclePlate, mode: "insensitive" } } : {}),
-        },
-        ...(driverName
-          ? { driver: { fullName: { contains: driverName, mode: "insensitive" } } }
-          : {}),
-        ...(routeName ? { route: { name: { contains: routeName, mode: "insensitive" } } } : {}),
-        ...buildPrismaWhereParams(
-          restParams as Record<string, string | undefined>,
-          dispatchFilters,
-        ),
-      },
+      where,
       include: { vehicle: true, driver: true, route: true },
       orderBy: buildOrderBy(dispatchSortKeys, sortBy, sortOrder),
+      skip,
+      take,
     }),
+    prisma.dispatch.count({ where }),
   ]);
   const t = await getTranslations("Dispatches");
 
@@ -90,6 +108,7 @@ const DispatchesPage = async ({
         driverList={driverList}
         routeList={routeList}
         dispatches={dispatchList}
+        pagination={{ page, pageSize, totalCount }}
       />
     </div>
   );

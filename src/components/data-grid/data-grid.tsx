@@ -3,13 +3,14 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
 import type { ColDef, GetRowIdParams, IsFullWidthRowParams } from "ag-grid-community";
-import { ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buildColumnDefs, deriveFilterSyncConfig, type GridColumn } from "./columns";
 import { colorSchemeDark, themeQuartz } from "ag-grid-community";
 import { useTheme } from "next-themes";
 import { useGridQuerySync } from "./use-grid-query-sync";
 import { filterRegistry, isRegisteredFilterType } from "./filter-registry";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
+import { PaginationControls } from "./pagination-controls";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -37,7 +38,6 @@ const darkTheme = themeQuartz.withPart(colorSchemeDark).withParams({
   wrapperBorderRadius: 8,
 });
 
-// Genişletilen satırın altına eklenen sentetik "detay" satırı.
 type DetailRow = { __detail: true; parentId: string };
 type DisplayRow<T> = T | DetailRow;
 
@@ -55,15 +55,19 @@ function resolveColumnDefs<T>(columnDefs: ColDef<T>[]): ColDef<T>[] {
   });
 }
 
+export type DataGridPagination = {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+};
+
 type DataGridProps<T> = Omit<AgGridReactProps<T>, "columnDefs"> & {
   columns: GridColumn<T>[];
-  /** Satır genişletildiğinde tam genişlikte gösterilecek içerik. Verilmezse expand kolonu hiç eklenmez. */
   renderDetail?: (row: T) => ReactNode;
-  /** Her satır için stabil, benzersiz bir string key. renderDetail kullanılıyorsa zorunlu. */
   getRowKey?: (row: T) => string;
-  /** Detay satırının yüksekliği (px). Varsayılan: 320. */
   detailRowHeight?: number;
-  singleExpand?: boolean; /** true ise aynı anda sadece bir satır açık kalır. Varsayılan: false. */
+  singleExpand?: boolean;
+  pagination?: DataGridPagination;
 };
 
 function DataGridInner<T>(
@@ -74,6 +78,7 @@ function DataGridInner<T>(
     getRowKey,
     detailRowHeight = 320,
     singleExpand = false,
+    pagination,
     onGridReady,
     onSortChanged,
     onFilterChanged,
@@ -89,9 +94,7 @@ function DataGridInner<T>(
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
-      if (singleExpand) {
-        return prev.has(id) ? new Set() : new Set([id]);
-      }
+      if (singleExpand) return prev.has(id) ? new Set() : new Set([id]);
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -135,7 +138,7 @@ function DataGridInner<T>(
       cellStyle: { padding: 0 },
       cellRenderer: ({ data }: { data: DisplayRow<T> }) => {
         if (!data || isDetailRow(data)) return null;
-        const id = getRowKey!(data as T);
+        const id = getRowKey(data as T);
         const isOpen = expandedIds.has(id);
         return (
           <button
@@ -152,6 +155,7 @@ function DataGridInner<T>(
         );
       },
     };
+
     return [expanderColDef, ...baseColumnDefs];
   }, [baseColumnDefs, renderDetail, getRowKey, expandedIds]);
 
@@ -183,13 +187,13 @@ function DataGridInner<T>(
       : undefined;
 
   return (
-    <div style={{ height: 750, width: "100%" }}>
+    <div style={{ width: "100%" }}>
       <AgGridReact
         ref={innerRef}
         {...props}
+        domLayout="autoHeight"
         theme={resolvedTheme === "dark" ? darkTheme : lightTheme}
         defaultColDef={{ flex: 1, ...props.defaultColDef }}
-        // domLayout="autoHeight"
         enableFilterHandlers
         rowData={displayRowData}
         columnDefs={columnDefs}
@@ -210,6 +214,8 @@ function DataGridInner<T>(
           onFilterChanged?.(event);
         }}
       />
+
+      {pagination && <PaginationControls {...pagination} />}
     </div>
   );
 }
