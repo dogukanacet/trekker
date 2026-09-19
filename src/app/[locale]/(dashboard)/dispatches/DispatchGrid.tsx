@@ -19,7 +19,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EditDispatchDialog } from "@/app/[locale]/(dashboard)/dispatches/EditDispatchDialog";
 import { useTranslations } from "next-intl";
-import { DataGrid, type GridColumn } from "@/components/data-grid";
+import { DataGrid, type GridColumn, type DataGridPagination } from "@/components/data-grid";
 import { DispatchDetailPanel } from "./DispatchDetailPanel";
 
 type DispatchRow = Dispatch & {
@@ -33,11 +33,13 @@ const DispatchGrid = ({
   vehicleList,
   driverList,
   routeList,
+  pagination,
 }: {
   dispatches: DispatchRow[];
   vehicleList: Vehicle[];
   driverList: Driver[];
   routeList: Route[];
+  pagination: DataGridPagination;
 }) => {
   const t = useTranslations("Dispatches");
   const common = useTranslations("Common");
@@ -157,6 +159,7 @@ const DispatchGrid = ({
         getRowKey={(row) => row.id}
         renderDetail={(row) => <DispatchDetailPanel dispatchId={row.id} />}
         singleExpand
+        pagination={pagination}
       />
 
       {editingRow && (

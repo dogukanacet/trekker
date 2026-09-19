@@ -64,6 +64,7 @@ export function useGridQuerySync(
       params.delete("sortBy");
       params.delete("sortOrder");
     }
+    params.delete("page");
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [gridRef, router, pathname, searchParams]);

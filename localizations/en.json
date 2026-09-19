@@ -37,7 +37,8 @@
     "noResults": "No results found.",
     "loading": "Loading...",
     "startDate": "Start date",
-    "endDate": "End date"
+    "endDate": "End date",
+    "pageInfo": "Page {page} of {totalPages} ({totalCount} records)"
   },
   "Vehicles": {
     "title": "Vehicles",

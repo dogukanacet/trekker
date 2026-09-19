@@ -37,7 +37,8 @@
     "noResults": "Sonuç bulunamadı.",
     "loading": "Yükleniyor...",
     "startDate": "Başlangıç tarihi",
-    "endDate": "Bitiş tarihi"
+    "endDate": "Bitiş tarihi",
+    "pageInfo": "Sayfa {page} / {totalPages} ({totalCount} kayıt)"
   },
   "Vehicles": {
     "title": "Araçlar",
