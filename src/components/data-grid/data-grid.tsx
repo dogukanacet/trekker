@@ -3,7 +3,7 @@
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
 import type { ColDef, GetRowIdParams, IsFullWidthRowParams } from "ag-grid-community";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { buildColumnDefs, deriveFilterSyncConfig, type GridColumn } from "./columns";
 import { colorSchemeDark, themeQuartz } from "ag-grid-community";
 import { useTheme } from "next-themes";
@@ -61,7 +61,7 @@ export type DataGridPagination = {
   totalCount: number;
 };
 
-type DataGridProps<T> = Omit<AgGridReactProps<T>, "columnDefs"> & {
+type DataGridProps<T> = Omit<AgGridReactProps<T>, "columnDefs" | "pagination"> & {
   columns: GridColumn<T>[];
   renderDetail?: (row: T) => ReactNode;
   getRowKey?: (row: T) => string;
@@ -188,9 +188,9 @@ function DataGridInner<T>(
 
   return (
     <div style={{ width: "100%" }}>
-      <AgGridReact
+      <AgGridReact<DisplayRow<T>>
         ref={innerRef}
-        {...props}
+        {...(props as AgGridReactProps<DisplayRow<T>>)}
         domLayout="autoHeight"
         theme={resolvedTheme === "dark" ? darkTheme : lightTheme}
         defaultColDef={{ flex: 1, ...props.defaultColDef }}
