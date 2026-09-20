@@ -2,7 +2,14 @@
 
 import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ReactNode } from "react";
 import { AgGridReact, type AgGridReactProps } from "ag-grid-react";
-import type { ColDef, GetRowIdParams, IsFullWidthRowParams } from "ag-grid-community";
+import type {
+  ColDef,
+  GetRowIdParams,
+  IsFullWidthRowParams,
+  GridReadyEvent,
+  SortChangedEvent,
+  FilterChangedEvent,
+} from "ag-grid-community";
 import { ChevronRight } from "lucide-react";
 import { buildColumnDefs, deriveFilterSyncConfig, type GridColumn } from "./columns";
 import { colorSchemeDark, themeQuartz } from "ag-grid-community";
@@ -193,7 +200,7 @@ function DataGridInner<T>(
         {...(props as AgGridReactProps<DisplayRow<T>>)}
         domLayout="autoHeight"
         theme={resolvedTheme === "dark" ? darkTheme : lightTheme}
-        defaultColDef={{ flex: 1, ...props.defaultColDef }}
+        defaultColDef={{ flex: 1, ...props.defaultColDef } as ColDef<DisplayRow<T>>}
         enableFilterHandlers
         rowData={displayRowData}
         columnDefs={columnDefs}
@@ -203,15 +210,15 @@ function DataGridInner<T>(
         getRowId={getRowId}
         onGridReady={(event) => {
           applyInitialState();
-          onGridReady?.(event);
+          onGridReady?.(event as unknown as GridReadyEvent<T>);
         }}
         onSortChanged={(event) => {
           handleSortChanged();
-          onSortChanged?.(event);
+          onSortChanged?.(event as unknown as SortChangedEvent<T>);
         }}
         onFilterChanged={(event) => {
           handleFilterChanged();
-          onFilterChanged?.(event);
+          onFilterChanged?.(event as unknown as FilterChangedEvent<T>);
         }}
       />
 

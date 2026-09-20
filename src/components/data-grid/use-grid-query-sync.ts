@@ -80,9 +80,9 @@ export function useGridQuerySync(
         const model = await api.getColumnFilterModel(config.colId);
         model ? params.set(config.paramKey, model as string) : params.delete(config.paramKey);
       } else if (config.type === "multiselect") {
-        const model = await api.getColumnFilterModel(config.colId);
+        const model = (await api.getColumnFilterModel(config.colId)) as string[] | null;
         model?.length
-          ? params.set(config.paramKey, (model as string[]).join(","))
+          ? params.set(config.paramKey, model.join(","))
           : params.delete(config.paramKey);
       } else if (config.type === "dateRange") {
         const model = (await api.getColumnFilterModel(config.colId)) as {
