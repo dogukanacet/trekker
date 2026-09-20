@@ -17,9 +17,11 @@ export function buildOrderBy<TKey extends string>(
     ? Object.fromEntries(allowedKeys.map((k) => [k, k]))
     : (allowedKeys as Record<string, OrderByPath>);
 
-  if (!(sortBy in map)) return undefined;
+  const path = sortBy ? map[sortBy] : undefined;
+  if (!path) return undefined;
 
-  const segments = toSegments(map[sortBy]);
+  const segments = toSegments(path);
+
   return segments.reduceRight<unknown>((acc, segment) => ({ [segment]: acc }), order) as Record<
     string,
     unknown
