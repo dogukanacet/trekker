@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import type { Vehicle, Driver, Route, Dispatch } from "@prisma/client";
 import { dispatchStatusColors } from "@/lib/status-colors";
 import * as dispatchActions from "@/app/[locale]/(dashboard)/dispatches/actions";
