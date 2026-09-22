@@ -1,25 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ColumnHeader } from "@/components/ui/data-table/column-header";
 import { AddDriverDialog } from "@/app/[locale]/(dashboard)/drivers/AddDriverDialog";
-import DriverRow from "@/app/[locale]/(dashboard)/drivers/DriverRow";
+import DriverGrid from "@/app/[locale]/(dashboard)/drivers/DriverGrid";
 import { getTranslations } from "next-intl/server";
 import { buildOrderBy } from "@/lib/build-order-by";
 import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
+import { parsePagination } from "@/lib/pagination";
+import type { Prisma } from "@prisma/client";
 
 const driverFilters: FilterFieldConfig[] = [
   { key: "q", field: "fullName", type: "text" },
   { key: "licenseUntil", field: "licenseUntil", type: "dateRange" },
-  { key: "depotId", field: "depotId", type: "exact" },
+  { key: "depotId", field: "depotId", type: "in" },
 ];
 
 const DriversPage = async ({
@@ -32,26 +25,36 @@ const DriversPage = async ({
     sortOrder?: string;
     licenseUntilFrom?: string;
     licenseUntilTo?: string;
+    page?: string;
+    pageSize?: string;
   }>;
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   const params = await searchParams;
-  const { depotId, sortBy, sortOrder } = params;
   const driverSortKeys = ["fullName", "depotId", "licenseUntil"] as const;
 
-  const depotList = await prisma.depot.findMany({
-    where: { tenantId },
+  const { page, pageSize, skip, take } = parsePagination({
+    page: params.page,
+    pageSize: params.pageSize,
   });
-  const driverList = await prisma.driver.findMany({
-    where: {
-      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
-      ...buildPrismaWhereParams(params, driverFilters),
-    },
-    orderBy: buildOrderBy(driverSortKeys, sortBy, sortOrder),
-  });
+
+  const where: Prisma.DriverWhereInput = {
+    depot: { tenantId },
+    ...buildPrismaWhereParams(params, driverFilters),
+  };
+
+  const [depotList, driverList, totalCount] = await Promise.all([
+    prisma.depot.findMany({ where: { tenantId } }),
+    prisma.driver.findMany({
+      where,
+      orderBy: buildOrderBy(driverSortKeys, params.sortBy, params.sortOrder),
+      skip,
+      take,
+    }),
+    prisma.driver.count({ where }),
+  ]);
   const t = await getTranslations("Drivers");
-  const common = await getTranslations("Common");
 
   return (
     <div className="space-y-6">
@@ -64,55 +67,11 @@ const DriversPage = async ({
       <div className="flex flex-center justify-between">
         <AddDriverDialog depotList={depotList} />
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              <ColumnHeader
-                label={t("name")}
-                sortKey="fullName"
-                filter={{ type: "text", key: "q", placeholder: common("searchPlaceholder") }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("depot")}
-                sortKey="depotId"
-                filter={{
-                  type: "select",
-                  key: "depotId",
-                  placeholder: common("allDepots"),
-                  options: depotList.map((d) => ({ value: d.id, label: d.name })),
-                }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("licenseUntil")}
-                sortKey="licenseUntil"
-                filter={{
-                  type: "date-range",
-                  key: "licenseUntil",
-                  fromLabel: common("startDate"),
-                  toLabel: common("endDate"),
-                }}
-              />
-            </TableHead>
-            <TableHead className="text-right">{common("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {driverList.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4}>{t("empty")}</TableCell>
-            </TableRow>
-          ) : (
-            driverList.map((driver) => (
-              <DriverRow key={driver.id} driver={driver} depotList={depotList} />
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <DriverGrid
+        driverList={driverList}
+        depotList={depotList}
+        pagination={{ page, pageSize, totalCount }}
+      />
     </div>
   );
 };

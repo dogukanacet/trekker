@@ -1,20 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ColumnHeader } from "@/components/ui/data-table/column-header";
 import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
 import { buildOrderBy } from "@/lib/build-order-by";
+import { parsePagination } from "@/lib/pagination";
 import { AddRouteDialog } from "@/app/[locale]/(dashboard)/routes/AddRouteDialog";
-import RouteRow from "@/app/[locale]/(dashboard)/routes/RouteRow";
+import RouteGrid from "@/app/[locale]/(dashboard)/routes/RouteGrid";
 import { getTranslations } from "next-intl/server";
+import type { Prisma } from "@prisma/client";
+
+const routeFilters: FilterFieldConfig[] = [
+  { key: "q", field: "name", type: "text" },
+  { key: "depotId", field: "depotId", type: "in" },
+  { key: "createdAt", field: "createdAt", type: "dateRange" },
+];
 
 const RoutesPage = async ({
   searchParams,
@@ -26,29 +25,36 @@ const RoutesPage = async ({
     sortOrder?: string;
     createdAtFrom?: string;
     createdAtTo?: string;
+    page?: string;
+    pageSize?: string;
   }>;
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   const params = await searchParams;
-  const { depotId, sortBy, sortOrder } = params;
   const routeSortKeys = ["name", "depotId", "createdAt"] as const;
-  const routeFilters: FilterFieldConfig[] = [
-    { key: "q", field: "name", type: "text" },
-    { key: "depotId", field: "depotId", type: "exact" },
-    { key: "createdAt", field: "createdAt", type: "dateRange" },
-  ];
 
-  const depotList = await prisma.depot.findMany({ where: { tenantId } });
-  const routeList = await prisma.route.findMany({
-    where: {
-      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
-      ...buildPrismaWhereParams(params, routeFilters),
-    },
-    orderBy: buildOrderBy(routeSortKeys, sortBy, sortOrder),
+  const { page, pageSize, skip, take } = parsePagination({
+    page: params.page,
+    pageSize: params.pageSize,
   });
+
+  const where: Prisma.RouteWhereInput = {
+    depot: { tenantId },
+    ...buildPrismaWhereParams(params, routeFilters),
+  };
+
+  const [depotList, routeList, totalCount] = await Promise.all([
+    prisma.depot.findMany({ where: { tenantId } }),
+    prisma.route.findMany({
+      where,
+      orderBy: buildOrderBy(routeSortKeys, params.sortBy, params.sortOrder),
+      skip,
+      take,
+    }),
+    prisma.route.count({ where }),
+  ]);
   const t = await getTranslations("Routes");
-  const common = await getTranslations("Common");
 
   return (
     <div className="space-y-6">
@@ -63,57 +69,11 @@ const RoutesPage = async ({
         <AddRouteDialog depotList={depotList} />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              <ColumnHeader
-                label={t("name")}
-                sortKey="name"
-                filter={{ type: "text", key: "q", placeholder: common("searchByNamePlaceholder") }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("depot")}
-                sortKey="depotId"
-                filter={{
-                  type: "select",
-                  key: "depotId",
-                  placeholder: common("allDepots"),
-                  options: depotList.map((d) => ({ value: d.id, label: d.name })),
-                }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("createdAt")}
-                sortKey="createdAt"
-                filter={{
-                  type: "date-range",
-                  key: "createdAt",
-                  fromLabel: common("startDate"),
-                  toLabel: common("endDate"),
-                }}
-              />
-            </TableHead>
-            <TableHead className="text-right">{common("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {routeList.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={4} className={`text-center py-8 ${typography.secondary}`}>
-                {t("empty")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            routeList.map((route) => (
-              <RouteRow key={route.id} route={route} depotList={depotList} />
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <RouteGrid
+        routeList={routeList}
+        depotList={depotList}
+        pagination={{ page, pageSize, totalCount }}
+      />
     </div>
   );
 };

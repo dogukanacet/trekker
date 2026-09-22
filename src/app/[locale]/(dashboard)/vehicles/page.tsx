@@ -1,20 +1,21 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { ColumnHeader } from "@/components/ui/data-table/column-header";
 import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
 import { buildOrderBy } from "@/lib/build-order-by";
+import { parsePagination } from "@/lib/pagination";
 import { AddVehicleDialog } from "@/app/[locale]/(dashboard)/vehicles/AddVehicleDialog";
-import VehicleRow from "@/app/[locale]/(dashboard)/vehicles/VehicleRow";
+import VehicleGrid from "@/app/[locale]/(dashboard)/vehicles/VehicleGrid";
 import { getTranslations } from "next-intl/server";
+import type { Prisma } from "@prisma/client";
+
+const vehicleFilters: FilterFieldConfig[] = [
+  { key: "q", field: "plate", type: "text" },
+  { key: "model", field: "model", type: "text" },
+  { key: "depotId", field: "depotId", type: "in" },
+  { key: "insuranceUntil", field: "insuranceUntil", type: "dateRange" },
+  { key: "inspectionUntil", field: "inspectionUntil", type: "dateRange" },
+];
 
 const VehiclesPage = async ({
   searchParams,
@@ -29,33 +30,37 @@ const VehiclesPage = async ({
     insuranceUntilTo?: string;
     inspectionUntilFrom?: string;
     inspectionUntilTo?: string;
+    page?: string;
+    pageSize?: string;
   }>;
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   const params = await searchParams;
-  const { depotId, sortBy, sortOrder } = params;
 
   const vehicleSortKeys = ["plate", "model", "insuranceUntil", "inspectionUntil"] as const;
 
-  const vehicleFilters: FilterFieldConfig[] = [
-    { key: "q", field: "plate", type: "text" },
-    { key: "model", field: "model", type: "text" },
-    { key: "insuranceUntil", field: "insuranceUntil", type: "dateRange" },
-    { key: "inspectionUntil", field: "inspectionUntil", type: "dateRange" },
-  ];
-
-  const depotList = await prisma.depot.findMany({ where: { tenantId } });
-
-  const vehicleList = await prisma.vehicle.findMany({
-    where: {
-      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
-      ...buildPrismaWhereParams(params, vehicleFilters),
-    },
-    orderBy: buildOrderBy(vehicleSortKeys, sortBy, sortOrder),
+  const { page, pageSize, skip, take } = parsePagination({
+    page: params.page,
+    pageSize: params.pageSize,
   });
+
+  const where: Prisma.VehicleWhereInput = {
+    depot: { tenantId },
+    ...buildPrismaWhereParams(params, vehicleFilters),
+  };
+
+  const [depotList, vehicleList, totalCount] = await Promise.all([
+    prisma.depot.findMany({ where: { tenantId } }),
+    prisma.vehicle.findMany({
+      where,
+      orderBy: buildOrderBy(vehicleSortKeys, params.sortBy, params.sortOrder),
+      skip,
+      take,
+    }),
+    prisma.vehicle.count({ where }),
+  ]);
   const t = await getTranslations("Vehicles");
-  const common = await getTranslations("Common");
 
   return (
     <div className="space-y-6">
@@ -69,76 +74,11 @@ const VehiclesPage = async ({
         <div />
         <AddVehicleDialog depotList={depotList} />
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              <ColumnHeader
-                label={t("plate")}
-                sortKey="plate"
-                filter={{ type: "text", key: "q", placeholder: common("searchByPlatePlaceholder") }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("model")}
-                sortKey="model"
-                filter={{ type: "text", key: "model", placeholder: common("searchPlaceholder") }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("depot")}
-                sortKey="depotId"
-                filter={{
-                  type: "select",
-                  key: "depotId",
-                  placeholder: common("allDepots"),
-                  options: depotList.map((d) => ({ value: d.id, label: d.name })),
-                }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("insuranceUntil")}
-                sortKey="insuranceUntil"
-                filter={{
-                  type: "date-range",
-                  key: "insuranceUntil",
-                  fromLabel: common("startDate"),
-                  toLabel: common("endDate"),
-                }}
-              />
-            </TableHead>
-            <TableHead>
-              <ColumnHeader
-                label={t("inspectionUntil")}
-                sortKey="inspectionUntil"
-                filter={{
-                  type: "date-range",
-                  key: "inspectionUntil",
-                  fromLabel: common("startDate"),
-                  toLabel: common("endDate"),
-                }}
-              />
-            </TableHead>
-            <TableHead className="text-right">{common("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {vehicleList.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className={`text-center py-8 ${typography.secondary}`}>
-                {t("empty")}
-              </TableCell>
-            </TableRow>
-          ) : (
-            vehicleList.map((vehicle) => (
-              <VehicleRow key={vehicle.id} vehicle={vehicle} depotList={depotList} />
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <VehicleGrid
+        vehicleList={vehicleList}
+        depotList={depotList}
+        pagination={{ page, pageSize, totalCount }}
+      />
     </div>
   );
 };
