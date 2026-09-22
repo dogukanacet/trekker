@@ -75,6 +75,7 @@ type DataGridProps<T> = Omit<AgGridReactProps<T>, "columnDefs" | "pagination"> &
   detailRowHeight?: number;
   singleExpand?: boolean;
   pagination?: DataGridPagination;
+  minHeight?: number;
 };
 
 function DataGridInner<T>(
@@ -85,6 +86,7 @@ function DataGridInner<T>(
     getRowKey,
     detailRowHeight = 320,
     singleExpand = false,
+    minHeight = 500,
     pagination,
     onGridReady,
     onSortChanged,
@@ -195,33 +197,42 @@ function DataGridInner<T>(
 
   return (
     <div style={{ width: "100%" }}>
-      <AgGridReact<DisplayRow<T>>
-        ref={innerRef}
-        {...(props as AgGridReactProps<DisplayRow<T>>)}
-        domLayout="autoHeight"
-        theme={resolvedTheme === "dark" ? darkTheme : lightTheme}
-        defaultColDef={{ flex: 1, ...props.defaultColDef } as ColDef<DisplayRow<T>>}
-        enableFilterHandlers
-        rowData={displayRowData}
-        columnDefs={columnDefs}
-        isFullWidthRow={isFullWidthRow}
-        fullWidthCellRenderer={fullWidthCellRenderer}
-        getRowHeight={getRowHeight}
-        getRowId={getRowId}
-        onGridReady={(event) => {
-          applyInitialState();
-          onGridReady?.(event as unknown as GridReadyEvent<T>);
-        }}
-        onSortChanged={(event) => {
-          handleSortChanged();
-          onSortChanged?.(event as unknown as SortChangedEvent<T>);
-        }}
-        onFilterChanged={(event) => {
-          handleFilterChanged();
-          onFilterChanged?.(event as unknown as FilterChangedEvent<T>);
-        }}
-      />
-
+      <div
+        className="ag-grid-min-height"
+        style={{ "--grid-min-height": `${minHeight}px` } as React.CSSProperties}
+      >
+        <AgGridReact<DisplayRow<T>>
+          ref={innerRef}
+          {...(props as AgGridReactProps<DisplayRow<T>>)}
+          domLayout="autoHeight"
+          theme={resolvedTheme === "dark" ? darkTheme : lightTheme}
+          defaultColDef={{ flex: 1, ...props.defaultColDef } as ColDef<DisplayRow<T>>}
+          enableFilterHandlers
+          rowData={displayRowData}
+          columnDefs={columnDefs}
+          isFullWidthRow={isFullWidthRow}
+          fullWidthCellRenderer={fullWidthCellRenderer}
+          getRowHeight={getRowHeight}
+          getRowId={getRowId}
+          onGridReady={(event) => {
+            applyInitialState();
+            onGridReady?.(event as unknown as GridReadyEvent<T>);
+          }}
+          onSortChanged={(event) => {
+            handleSortChanged();
+            onSortChanged?.(event as unknown as SortChangedEvent<T>);
+          }}
+          onFilterChanged={(event) => {
+            handleFilterChanged();
+            onFilterChanged?.(event as unknown as FilterChangedEvent<T>);
+          }}
+        />
+      </div>
+      <style jsx global>{`
+        .ag-grid-min-height .ag-root-wrapper {
+          min-height: var(--grid-min-height);
+        }
+      `}</style>
       {pagination && <PaginationControls {...pagination} />}
     </div>
   );
