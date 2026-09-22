@@ -2,10 +2,18 @@
 
 import type { Driver, Depot } from "@prisma/client";
 import { useTranslations } from "next-intl";
-import { DataGrid, type GridColumn } from "@/components/data-grid";
+import { DataGrid, type GridColumn, type DataGridPagination } from "@/components/data-grid";
 import { DriverActionsCell } from "@/app/[locale]/(dashboard)/drivers/DriverActionsCell";
 
-const DriverGrid = ({ driverList, depotList }: { driverList: Driver[]; depotList: Depot[] }) => {
+const DriverGrid = ({
+  driverList,
+  depotList,
+  pagination,
+}: {
+  driverList: Driver[];
+  depotList: Depot[];
+  pagination: DataGridPagination;
+}) => {
   const t = useTranslations("Drivers");
   const common = useTranslations("Common");
 
@@ -55,7 +63,7 @@ const DriverGrid = ({ driverList, depotList }: { driverList: Driver[]; depotList
     },
   ];
 
-  return <DataGrid<Driver> rowData={driverList} columns={columns} />;
+  return <DataGrid<Driver> rowData={driverList} columns={columns} pagination={pagination} />;
 };
 
 export default DriverGrid;
