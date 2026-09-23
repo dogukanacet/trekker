@@ -12,7 +12,8 @@
     "vehicles": "Araçlar",
     "drivers": "Sürücüler",
     "routes": "Rotalar",
-    "dispatches": "Sevkiyatlar"
+    "dispatches": "Sevkiyatlar",
+    "depots": "Depolar"
   },
   "Common": {
     "add": "Ekle",
@@ -128,6 +129,22 @@
     "deleteTitle": "Sevkiyatı sil",
     "deleteDescription": "Bu sevkiyat kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz."
   },
+  "Depots": {
+    "title": "Depolar",
+    "subtitle": "Filo depolarını yönet.",
+    "add": "Depo ekle",
+    "new": "Yeni depo",
+    "edit": "Depo düzenle",
+    "name": "Depo adı",
+    "created": "Oluşturulma tarihi",
+    "updated": "Güncelleme tarihi",
+    "deleted": "Depo başarıyla silindi",
+    "deleteTitle": "Depo sil",
+    "deleteDescription": "{name} kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "vehicleCount": "Araç sayısı",
+    "driverCount": "Sürücü sayısı",
+    "routeCount": "Rota sayısı"
+  },
   "Auth": {
     "email": "E-posta",
     "password": "Şifre",
@@ -161,7 +178,8 @@
     "latRequired": "Enlem gerekli",
     "lngRequired": "Boylam gerekli",
     "resourceNotFound": "Aradığın kayıt mevcut değil ya da erişim yetkin yok.",
-    "sessionInfoNotFound": "Oturum bilgisi bulunamadı"
+    "sessionInfoNotFound": "Oturum bilgisi bulunamadı",
+    "depotHasRelatedRecords": "Bu depo silinemez çünkü ilişkili araçlar, sürücüler veya rotalar var."
   },
   "NotFound": {
     "title": "Bulunamadı",
