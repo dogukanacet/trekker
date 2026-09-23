@@ -3,7 +3,14 @@
 import { Link } from "@/i18n/navigation";
 import { usePathname } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
-import { LayoutDashboard, Truck, Users, Route as RouteIcon, ClipboardList } from "lucide-react";
+import {
+  LayoutDashboard,
+  Truck,
+  Users,
+  Route as RouteIcon,
+  ClipboardList,
+  Warehouse,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
@@ -12,6 +19,7 @@ export function Sidebar() {
 
   const navItems = [
     { href: "/", label: t("dashboard"), icon: LayoutDashboard },
+    { href: "/depots", label: t("depots"), icon: Warehouse },
     { href: "/vehicles", label: t("vehicles"), icon: Truck },
     { href: "/drivers", label: t("drivers"), icon: Users },
     { href: "/routes", label: t("routes"), icon: RouteIcon },

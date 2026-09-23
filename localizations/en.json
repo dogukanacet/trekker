@@ -12,7 +12,8 @@
     "vehicles": "Vehicles",
     "drivers": "Drivers",
     "routes": "Routes",
-    "dispatches": "Dispatches"
+    "dispatches": "Dispatches",
+    "depots": "Depots"
   },
   "Common": {
     "add": "Add",
@@ -128,6 +129,22 @@
     "deleteTitle": "Delete dispatch",
     "deleteDescription": "This dispatch record will be permanently deleted. This action cannot be undone."
   },
+  "Depots": {
+    "title": "Depots",
+    "subtitle": "Manage fleet depots.",
+    "add": "Add depot",
+    "new": "New depot",
+    "edit": "Edit depot",
+    "name": "Depot name",
+    "created": "Created at",
+    "updated": "Updated at",
+    "deleted": "Depot deleted successfully",
+    "deleteTitle": "Delete depot",
+    "deleteDescription": "{name} will be permanently deleted. This action cannot be undone.",
+    "vehicleCount": "Vehicle count",
+    "driverCount": "Driver count",
+    "routeCount": "Route count"
+  },
   "Auth": {
     "loginTitle": "Login",
     "registerTitle": "Register",
@@ -161,7 +178,8 @@
     "latRequired": "Latitude is required",
     "lngRequired": "Longitude is required",
     "resourceNotFound": "The requested record was not found or you do not have access.",
-    "sessionInfoNotFound": "Session information not found"
+    "sessionInfoNotFound": "Session information not found",
+    "depotHasRelatedRecords": "This depot cannot be deleted because it has related vehicles, drivers, or routes."
   },
   "NotFound": {
     "title": "Not found",
