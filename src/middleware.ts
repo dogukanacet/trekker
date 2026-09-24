@@ -29,9 +29,13 @@ export default auth((req) => {
 
   const isOnLogin = pathWithoutLocale === "/login";
   const isOnRegister = pathWithoutLocale === "/register";
+  const isOnForgotPassword = pathWithoutLocale === "/forgot-password";
+  const isOnResetPassword = pathWithoutLocale === "/reset-password";
+
+  const isPublicRoute = isOnLogin || isOnRegister || isOnForgotPassword || isOnResetPassword;
   const locale = getLocaleFromPath(req.nextUrl.pathname);
 
-  if (!isLoggedIn && !isOnLogin && !isOnRegister) {
+  if (!isPublicRoute && !isLoggedIn) {
     return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
   }
 

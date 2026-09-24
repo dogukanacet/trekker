@@ -22,6 +22,7 @@
     "delete": "Sil",
     "deleting": "Siliniyor...",
     "updating": "Güncelleniyor...",
+    "sending": "Gönderiliyor...",
     "selectDepot": "Depo seç",
     "language": "Dil",
     "lightMode": "Açık tema",
@@ -158,7 +159,19 @@
     "companyName": "Firma Adı",
     "loggingIn": "Giriş yapılıyor...",
     "registering": "Kayıt oluşturuluyor...",
-    "noAccount": "Hesabın yok mu?"
+    "noAccount": "Hesabın yok mu?",
+    "forgotPasswordTitle": "Şifreni mi unuttun?",
+    "forgotPasswordDescription": "E-posta adresini gir ve şifreni sıfırlamak için bir link gönderelim.",
+    "forgotPasswordSent": "{email} adresine şifre sıfırlama linki gönderildi.",
+    "sendResetLink": "Sıfırlama linki gönder",
+    "resetPasswordTitle": "Şifreni sıfırla",
+    "newPassword": "Yeni şifre",
+    "resetPassword": "Şifre sıfırla",
+    "resetPasswordSuccess": "Şifren başarıyla sıfırlandı. Yeni şifreyle giriş yapabilirsin.",
+    "goToLogin": "Giriş sayfasına git",
+    "invalidResetLink": "Bu şifre sıfırlama linki geçersiz veya süresi dolmuş. Yeni bir link isteyin.",
+    "requestNewLink": "Yeni link iste",
+    "forgotPassword": "Şifreni mi unuttun?"
   },
   "Errors": {
     "validationFailed": "Doğrulama başarısız: {message}",
@@ -179,7 +192,8 @@
     "lngRequired": "Boylam gerekli",
     "resourceNotFound": "Aradığın kayıt mevcut değil ya da erişim yetkin yok.",
     "sessionInfoNotFound": "Oturum bilgisi bulunamadı",
-    "depotHasRelatedRecords": "Bu depo silinemez çünkü ilişkili araçlar, sürücüler veya rotalar var."
+    "depotHasRelatedRecords": "Bu depo silinemez çünkü ilişkili araçlar, sürücüler veya rotalar var.",
+    "invalidOrExpiredToken": "Bağlantı geçersiz veya süresi dolmuş."
   },
   "NotFound": {
     "title": "Bulunamadı",
