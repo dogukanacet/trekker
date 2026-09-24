@@ -22,6 +22,7 @@
     "delete": "Delete",
     "deleting": "Deleting...",
     "updating": "Updating...",
+    "sending": "Sending...",
     "selectDepot": "Select a depot",
     "language": "Language",
     "lightMode": "Light mode",
@@ -158,7 +159,19 @@
     "registerSubtitle": "Start managing your fleet",
     "loggingIn": "Logging in...",
     "registering": "Registering...",
-    "noAccount": "Don't have an account?"
+    "noAccount": "Don't have an account?",
+    "forgotPasswordTitle": "Forgot your password?",
+    "forgotPasswordDescription": "Enter your email address and we'll send you a link to reset your password.",
+    "forgotPasswordSent": "A password reset link has been sent to {email}.",
+    "sendResetLink": "Send reset link",
+    "resetPasswordTitle": "Reset your password",
+    "newPassword": "New password",
+    "resetPassword": "Reset password",
+    "resetPasswordSuccess": "Your password has been reset successfully. You can now log in with your new password.",
+    "goToLogin": "Go to login",
+    "invalidResetLink": "This password reset link is invalid or has expired. Please request a new one.",
+    "requestNewLink": "Request a new link",
+    "forgotPassword": "Forgot password?"
   },
   "Errors": {
     "validationFailed": "Validation failed: {message}",
@@ -179,7 +192,8 @@
     "lngRequired": "Longitude is required",
     "resourceNotFound": "The requested record was not found or you do not have access.",
     "sessionInfoNotFound": "Session information not found",
-    "depotHasRelatedRecords": "This depot cannot be deleted because it has related vehicles, drivers, or routes."
+    "depotHasRelatedRecords": "This depot cannot be deleted because it has related vehicles, drivers, or routes.",
+    "invalidOrExpiredToken": "This link is invalid or has expired."
   },
   "NotFound": {
     "title": "Not found",
