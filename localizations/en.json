@@ -5,7 +5,13 @@
     "vehicles": "Vehicles",
     "drivers": "Drivers",
     "routes": "Routes",
-    "todaysDispatches": "Today's Dispatches"
+    "todaysDispatches": "Today's Dispatches",
+    "upcomingRenewals": "Upcoming renewals",
+    "insuranceExpiring": "Insurance expiry",
+    "inspectionExpiring": "Inspection expiry",
+    "licenseExpiring": "License expiry",
+    "daysLeft": "{days} days left",
+    "noUpcomingRenewals": "No upcoming renewals."
   },
   "Sidebar": {
     "dashboard": "Dashboard",
