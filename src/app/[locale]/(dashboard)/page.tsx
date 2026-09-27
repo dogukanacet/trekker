@@ -5,6 +5,20 @@ import { getTranslations } from "next-intl/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Truck, Users, Route as RouteIcon, ClipboardList } from "lucide-react";
 import { typography } from "@/lib/constants";
+import { RenewalRow } from "@/app/[locale]/(dashboard)/RenewalRow";
+import type { Vehicle, Driver } from "@prisma/client";
+
+const RENEWAL_WINDOW_DAYS = 30;
+
+type RenewalEntry =
+  | {
+      kind: "vehicle";
+      id: string;
+      vehicle: Vehicle;
+      renewalType: "insurance" | "inspection";
+      date: Date;
+    }
+  | { kind: "driver"; id: string; driver: Driver; date: Date };
 
 export default async function Home() {
   const t = await getTranslations("Dashboard");
@@ -26,6 +40,59 @@ export default async function Home() {
       vehicle: { depot: { tenantId } },
     },
   });
+
+  const renewalWindowEnd = new Date(startOfToday);
+  renewalWindowEnd.setDate(renewalWindowEnd.getDate() + RENEWAL_WINDOW_DAYS);
+
+  const [vehiclesWithExpiry, driversWithExpiry, depotList] = await Promise.all([
+    prisma.vehicle.findMany({
+      where: {
+        depot: { tenantId },
+        OR: [
+          { insuranceUntil: { gte: startOfToday, lte: renewalWindowEnd } },
+          { inspectionUntil: { gte: startOfToday, lte: renewalWindowEnd } },
+        ],
+      },
+    }),
+    prisma.driver.findMany({
+      where: {
+        depot: { tenantId },
+        licenseUntil: { gte: startOfToday, lte: renewalWindowEnd },
+      },
+    }),
+    prisma.depot.findMany({ where: { tenantId } }),
+  ]);
+
+  const renewals: RenewalEntry[] = [];
+  for (const vehicle of vehiclesWithExpiry) {
+    if (vehicle.insuranceUntil && vehicle.insuranceUntil <= renewalWindowEnd) {
+      renewals.push({
+        kind: "vehicle",
+        id: `${vehicle.id}-insurance`,
+        vehicle,
+        renewalType: "insurance",
+        date: vehicle.insuranceUntil,
+      });
+    }
+    if (vehicle.inspectionUntil && vehicle.inspectionUntil <= renewalWindowEnd) {
+      renewals.push({
+        kind: "vehicle",
+        id: `${vehicle.id}-inspection`,
+        vehicle,
+        renewalType: "inspection",
+        date: vehicle.inspectionUntil,
+      });
+    }
+  }
+  for (const driver of driversWithExpiry) {
+    renewals.push({
+      kind: "driver",
+      id: `${driver.id}-license`,
+      driver,
+      date: driver.licenseUntil,
+    });
+  }
+  renewals.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const cards = [
     { label: t("vehicles"), count: vehicleCount, href: "/vehicles", icon: Truck },
@@ -64,6 +131,42 @@ export default async function Home() {
           );
         })}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className={typography.sectionTitle}>{t("upcomingRenewals")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {renewals.length === 0 ? (
+            <p className={typography.secondary}>{t("noUpcomingRenewals")}</p>
+          ) : (
+            <ul className="divide-y">
+              {renewals
+                .slice(0, 10)
+                .map((item) =>
+                  item.kind === "vehicle" ? (
+                    <RenewalRow
+                      key={item.id}
+                      kind="vehicle"
+                      vehicle={item.vehicle}
+                      depotList={depotList}
+                      renewalType={item.renewalType}
+                      date={item.date}
+                    />
+                  ) : (
+                    <RenewalRow
+                      key={item.id}
+                      kind="driver"
+                      driver={item.driver}
+                      depotList={depotList}
+                      date={item.date}
+                    />
+                  ),
+                )}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

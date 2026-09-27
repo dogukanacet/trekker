@@ -5,7 +5,13 @@
     "vehicles": "Araç",
     "drivers": "Sürücü",
     "routes": "Rota",
-    "todaysDispatches": "Bugünkü Sevkiyat"
+    "todaysDispatches": "Bugünkü Sevkiyat",
+    "upcomingRenewals": "Yaklaşan yenilemeler",
+    "insuranceExpiring": "Sigorta bitişi",
+    "inspectionExpiring": "Muayene bitişi",
+    "licenseExpiring": "Ehliyet bitişi",
+    "daysLeft": "{days} gün kaldı",
+    "noUpcomingRenewals": "Yaklaşan yenileme bulunmuyor."
   },
   "Sidebar": {
     "dashboard": "Dashboard",
