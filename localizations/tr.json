@@ -134,7 +134,10 @@
     "updated": "Sevkiyat güncellendi",
     "deleted": "Sevkiyat silindi",
     "deleteTitle": "Sevkiyatı sil",
-    "deleteDescription": "Bu sevkiyat kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz."
+    "deleteDescription": "Bu sevkiyat kaydı kalıcı olarak silinecek. Bu işlem geri alınamaz.",
+    "statusHistory": "Durum Geçmişi",
+    "loadingHistory": "Geçmiş yükleniyor...",
+    "noHistory": "Henüz bir durum geçmişi yok."
   },
   "Depots": {
     "title": "Depolar",

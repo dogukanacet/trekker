@@ -104,6 +104,15 @@ model Dispatch {
   route         Route           @relation(fields: [routeId], references: [id])
   status        DispatchStatus  @default(PLANNED)
   date          DateTime        @default(now())
+  statusHistory DispatchStatusHistory[]
+}
+
+model DispatchStatusHistory {
+  id         String         @id @default(cuid())
+  dispatchId String
+  dispatch   Dispatch       @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+  status     DispatchStatus
+  changedAt  DateTime       @default(now())
 }
 
 model RefreshToken {

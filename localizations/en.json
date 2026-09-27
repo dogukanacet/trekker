@@ -134,7 +134,10 @@
     "updated": "Dispatch updated",
     "deleted": "Dispatch deleted",
     "deleteTitle": "Delete dispatch",
-    "deleteDescription": "This dispatch record will be permanently deleted. This action cannot be undone."
+    "deleteDescription": "This dispatch record will be permanently deleted. This action cannot be undone.",
+    "statusHistory": "Status History",
+    "loadingHistory": "Loading history...",
+    "noHistory": "No status history yet."
   },
   "Depots": {
     "title": "Depots",
