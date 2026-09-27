@@ -62,13 +62,20 @@ export const createDispatch = async (
     };
   }
 
-  await prisma.dispatch.create({
+  const dispatch = await prisma.dispatch.create({
     data: {
       routeId: validationResult.data.routeId,
       vehicleId: validationResult.data.vehicleId,
       driverId: validationResult.data.driverId,
     },
   });
+
+  // Dispatch her zaman PLANNED durumuyla oluşuyor (şemadaki @default) —
+  // geçmişin ilk kaydını da burada, o durumla düşüyoruz.
+  await prisma.dispatchStatusHistory.create({
+    data: { dispatchId: dispatch.id, status: dispatch.status },
+  });
+
   const locale = await getLocale();
   revalidatePath(`/${locale}/dispatches`);
 
@@ -104,7 +111,7 @@ export const updateDispatch = async (
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
-  const [vehicle, driver, route] = await Promise.all([
+  const [vehicle, driver, route, currentDispatch] = await Promise.all([
     prisma.vehicle.findFirst({
       where: { id: validationResult.data.vehicleId, depot: { tenantId } },
     }),
@@ -114,28 +121,38 @@ export const updateDispatch = async (
     prisma.route.findFirst({
       where: { id: validationResult.data.routeId, depot: { tenantId } },
     }),
+    prisma.dispatch.findFirst({
+      where: { id: dispatchId, vehicle: { depot: { tenantId } } },
+    }),
   ]);
 
-  if (!vehicle || !driver || !route) {
+  if (!vehicle || !driver || !route || !currentDispatch) {
     return {
       error: t("resourceNotFound"),
       success: false,
     };
   }
 
-  const result = await prisma.dispatch.updateMany({
-    where: { id: dispatchId, vehicle: { depot: { tenantId } } },
-    data: {
-      routeId: validationResult.data.routeId,
-      driverId: validationResult.data.driverId,
-      vehicleId: validationResult.data.vehicleId,
-      status: validationResult.data.status,
-    },
-  });
+  const statusChanged = currentDispatch.status !== validationResult.data.status;
 
-  if (result.count === 0) {
-    return { error: t("dispatchNotFound"), success: false };
-  }
+  await prisma.$transaction([
+    prisma.dispatch.update({
+      where: { id: dispatchId },
+      data: {
+        routeId: validationResult.data.routeId,
+        driverId: validationResult.data.driverId,
+        vehicleId: validationResult.data.vehicleId,
+        status: validationResult.data.status,
+      },
+    }),
+    ...(statusChanged
+      ? [
+          prisma.dispatchStatusHistory.create({
+            data: { dispatchId, status: validationResult.data.status },
+          }),
+        ]
+      : []),
+  ]);
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/dispatches`);
@@ -173,7 +190,7 @@ export async function getDispatchDetail(dispatchId: string) {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   if (!session || !tenantId) {
-    return { error: t("unauthenticated"), data: null };
+    return { error: t("unauthenticated"), dispatch: null, history: [] };
   }
 
   const dispatch = await prisma.dispatch.findFirst({
@@ -181,8 +198,13 @@ export async function getDispatchDetail(dispatchId: string) {
   });
 
   if (!dispatch) {
-    return { error: t("dispatchNotFound"), data: null };
+    return { error: t("dispatchNotFound"), dispatch: null, history: [] };
   }
 
-  return { error: null, data: dispatch };
+  const history = await prisma.dispatchStatusHistory.findMany({
+    where: { dispatchId },
+    orderBy: { changedAt: "asc" },
+  });
+
+  return { error: null, dispatch, history };
 }
