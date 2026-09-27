@@ -21,6 +21,11 @@ export function LoginForm() {
       <div className="space-y-2">
         <Label htmlFor="password">{t("password")}</Label>
         <Input id="password" type="password" name="password" required />
+        <div className="flex items-center justify-between">
+          <Link href="/forgot-password" className="text-sm text-primary hover:underline ml-auto">
+            {t("forgotPassword")}
+          </Link>
+        </div>
       </div>
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}
       <Button type="submit" className="w-full" disabled={isPending}>

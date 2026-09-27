@@ -30,14 +30,15 @@ model Tenant {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  email         String   @unique
-  passwordHash  String
-  role          Role     @default(DISPATCHER)
-  createdAt     DateTime @default(now())
-  refreshTokens RefreshToken[]
+  id                    String   @id @default(cuid())
+  tenantId              String
+  tenant                Tenant   @relation(fields: [tenantId], references: [id])
+  email                 String   @unique
+  passwordHash          String
+  role                  Role     @default(DISPATCHER)
+  createdAt             DateTime @default(now())
+  refreshTokens         RefreshToken[]
+  passwordResetTokens   PasswordResetToken[]
 }
 
 model Depot {
@@ -113,4 +114,14 @@ model RefreshToken {
   createdAt        DateTime @default(now())
   expiresAt        DateTime
   isCancelled      Boolean  @default(false)
+}
+
+model PasswordResetToken {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash       String   @unique
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  isCancelled     Boolean  @default(false)
 }
