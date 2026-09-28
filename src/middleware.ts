@@ -3,9 +3,24 @@ import { NextResponse } from "next/server";
 import createMiddleware from "next-intl/middleware";
 import { authConfig } from "@/lib/auth.config";
 import { routing } from "@/i18n/routing";
+import { hasPermission, type Resource } from "@/lib/permissions";
 
 const { auth } = NextAuth(authConfig);
 const intlMiddleware = createMiddleware(routing);
+
+const routeResources: Record<string, Resource> = {
+  "/depots": "depots",
+  "/vehicles": "vehicles",
+  "/drivers": "drivers",
+  "/routes": "routes",
+  "/dispatches": "dispatches",
+  "/users": "users",
+};
+
+function getResourceForPath(pathname: string): Resource | null {
+  const firstSegment = "/" + (pathname.split("/")[1] ?? "");
+  return routeResources[firstSegment] ?? null;
+}
 
 function stripLocale(pathname: string): string {
   const segments = pathname.split("/");
@@ -31,16 +46,22 @@ export default auth((req) => {
   const isOnRegister = pathWithoutLocale === "/register";
   const isOnForgotPassword = pathWithoutLocale === "/forgot-password";
   const isOnResetPassword = pathWithoutLocale === "/reset-password";
-
   const isPublicRoute = isOnLogin || isOnRegister || isOnForgotPassword || isOnResetPassword;
   const locale = getLocaleFromPath(req.nextUrl.pathname);
 
-  if (!isPublicRoute && !isLoggedIn) {
+  if (!isLoggedIn && !isPublicRoute) {
     return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
   }
 
   if (isLoggedIn && (isOnLogin || isOnRegister)) {
     return NextResponse.redirect(new URL(`/${locale}`, req.url));
+  }
+
+  if (isLoggedIn && !isPublicRoute) {
+    const resource = getResourceForPath(pathWithoutLocale);
+    if (resource && !hasPermission(req.auth?.user?.role, resource, "read")) {
+      return NextResponse.redirect(new URL(`/${locale}`, req.url));
+    }
   }
 
   return intlMiddleware(req);

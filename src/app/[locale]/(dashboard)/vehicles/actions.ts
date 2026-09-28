@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { getTranslations } from "next-intl/server";
+import { authorize } from "@/lib/authorize";
 
 const vehicleSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
@@ -19,11 +18,9 @@ export const createVehicle = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("vehicles", "create");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const plate = data.get("plate") as string;
@@ -48,7 +45,7 @@ export const createVehicle = async (
   }
 
   const depot = await prisma.depot.findFirst({
-    where: { id: validationResult.data.depotId, tenantId: session?.user?.tenantId },
+    where: { id: validationResult.data.depotId, tenantId },
   });
 
   if (!depot) {
@@ -75,11 +72,9 @@ export const updateVehicle = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("vehicles", "update");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const plate = data.get("plate") as string;
@@ -104,7 +99,7 @@ export const updateVehicle = async (
   }
 
   const depot = await prisma.depot.findFirst({
-    where: { id: validationResult?.data?.depotId, tenantId: session?.user?.tenantId },
+    where: { id: validationResult?.data?.depotId, tenantId },
   });
 
   if (!depot) {
@@ -130,15 +125,13 @@ export const deleteVehicle = async (
   vehicleId: string,
   prevState: { error: string | null; success: boolean },
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("vehicles", "delete");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   try {
     const result = await prisma.vehicle.deleteMany({
-      where: { id: vehicleId, depot: { tenantId: session?.user?.tenantId } },
+      where: { id: vehicleId, depot: { tenantId } },
     });
 
     if (result.count === 0) {

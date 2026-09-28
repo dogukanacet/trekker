@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { getTranslations } from "next-intl/server";
+import { authorize } from "@/lib/authorize";
 
 const routeSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
@@ -23,11 +22,9 @@ export const createRoute = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("routes", "create");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const name = data.get("name") as string;
@@ -39,7 +36,7 @@ export const createRoute = async (
   }
 
   const depot = await prisma.depot.findFirst({
-    where: { id: validationResult.data.depotId, tenantId: session?.user?.tenantId },
+    where: { id: validationResult.data.depotId, tenantId },
   });
 
   if (!depot) {
@@ -63,11 +60,9 @@ export const updateRoute = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("routes", "update");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const name = data.get("name") as string;
@@ -83,7 +78,7 @@ export const updateRoute = async (
   }
 
   const depot = await prisma.depot.findFirst({
-    where: { id: validationResult?.data?.depotId, tenantId: session?.user?.tenantId },
+    where: { id: validationResult?.data?.depotId, tenantId },
   });
 
   if (!depot) {
@@ -107,15 +102,13 @@ export const deleteRoute = async (
   routeId: string,
   prevState: { error: string | null; success: boolean },
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("routes", "delete");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   try {
     const result = await prisma.route.deleteMany({
-      where: { id: routeId, depot: { tenantId: session?.user?.tenantId } },
+      where: { id: routeId, depot: { tenantId } },
     });
 
     if (result.count === 0) {
@@ -138,11 +131,9 @@ export const deleteRoute = async (
 };
 
 export const addStop = async (routeId: string, data: FormData) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated") };
-  }
+  const checkAuth = await authorize("routes", "create");
+  if (!checkAuth.ok) return { error: checkAuth.error };
+  const { t, tenantId } = checkAuth;
 
   const label = data.get("label") as string;
   const lat = data.get("lat") as string;
@@ -159,7 +150,18 @@ export const addStop = async (routeId: string, data: FormData) => {
     return { error: t("validationFailed", { message: errorMessages }) };
   }
 
-  const stopCount = await prisma.routeStop.count({ where: { routeId } });
+  const route = await prisma.route.findFirst({
+    where: { id: validationResult.data.routeId, depot: { tenantId } },
+    select: { id: true },
+  });
+
+  if (!route) {
+    return { error: t("routeNotFound") };
+  }
+
+  const stopCount = await prisma.routeStop.count({
+    where: { routeId: validationResult.data.routeId },
+  });
 
   await prisma.routeStop.create({
     data: {
@@ -175,14 +177,12 @@ export const addStop = async (routeId: string, data: FormData) => {
 };
 
 export const deleteStop = async (stopId: string, routeId: string) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated") };
-  }
+  const checkAuth = await authorize("routes", "delete");
+  if (!checkAuth.ok) return { error: checkAuth.error };
+  const { tenantId } = checkAuth;
 
   await prisma.routeStop.deleteMany({
-    where: { id: stopId, route: { depot: { tenantId: session.user?.tenantId } } },
+    where: { id: stopId, route: { depot: { tenantId } } },
   });
   const locale = await getLocale();
   revalidatePath(`/${locale}/routes/${routeId}`);

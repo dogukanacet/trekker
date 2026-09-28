@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { getTranslations } from "next-intl/server";
+import { authorize } from "@/lib/authorize";
 
 const depotSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -15,12 +14,9 @@ export const createDepot = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  const tenantId = session?.user?.tenantId;
-  if (!session || !tenantId) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("depots", "create");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const name = data.get("name") as string;
   const validationResult = depotSchema.safeParse({ name });
@@ -45,12 +41,9 @@ export const updateDepot = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  const tenantId = session?.user?.tenantId;
-  if (!session || !tenantId) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("depots", "update");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const name = data.get("name") as string;
   const validationResult = depotSchema.safeParse({ name });
@@ -79,12 +72,9 @@ export const deleteDepot = async (
   depotId: string,
   prevState: { error: string | null; success: boolean },
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  const tenantId = session?.user?.tenantId;
-  if (!session || !tenantId) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("depots", "delete");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const depot = await prisma.depot.findFirst({
     where: { id: depotId, tenantId },

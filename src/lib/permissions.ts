@@ -26,7 +26,7 @@ const permissions: Record<Role, Partial<Record<Resource, readonly Action[]>>> = 
   },
 };
 
-export function can(role: Role | undefined, resource: Resource, action: Action): boolean {
+export function hasPermission(role: Role | undefined, resource: Resource, action: Action): boolean {
   if (!role) return false;
   return permissions[role][resource]?.includes(action) ?? false;
 }

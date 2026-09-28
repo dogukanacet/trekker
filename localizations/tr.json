@@ -202,7 +202,8 @@
     "resourceNotFound": "Aradığın kayıt mevcut değil ya da erişim yetkin yok.",
     "sessionInfoNotFound": "Oturum bilgisi bulunamadı",
     "depotHasRelatedRecords": "Bu depo silinemez çünkü ilişkili araçlar, sürücüler veya rotalar var.",
-    "invalidOrExpiredToken": "Bağlantı geçersiz veya süresi dolmuş."
+    "invalidOrExpiredToken": "Bağlantı geçersiz veya süresi dolmuş.",
+    "forbidden": "Bu işlem için yetkiniz yok."
   },
   "NotFound": {
     "title": "Bulunamadı",

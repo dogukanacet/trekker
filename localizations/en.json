@@ -202,7 +202,8 @@
     "resourceNotFound": "The requested record was not found or you do not have access.",
     "sessionInfoNotFound": "Session information not found",
     "depotHasRelatedRecords": "This depot cannot be deleted because it has related vehicles, drivers, or routes.",
-    "invalidOrExpiredToken": "This link is invalid or has expired."
+    "invalidOrExpiredToken": "This link is invalid or has expired.",
+    "forbidden": "You don't have permission to perform this action."
   },
   "NotFound": {
     "title": "Not found",
