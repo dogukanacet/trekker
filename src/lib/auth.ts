@@ -15,6 +15,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email },
+          include: { driver: { select: { id: true } } },
         });
 
         if (!user) {
@@ -30,6 +31,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           role: user.role,
           tenantId: user.tenantId,
+          driverId: user.driver?.id ?? null,
         };
       },
     }),
