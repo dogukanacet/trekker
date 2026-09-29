@@ -8,6 +8,7 @@ import { AddDepotDialog } from "@/app/[locale]/(dashboard)/depots/AddDepotDialog
 import DepotGrid from "@/app/[locale]/(dashboard)/depots/DepotGrid";
 import { getTranslations } from "next-intl/server";
 import type { Prisma } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
 
 const depotFilters: FilterFieldConfig[] = [{ key: "q", field: "name", type: "text" }];
 
@@ -24,6 +25,7 @@ const DepotsPage = async ({
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
+  const canManage = hasPermission(session?.user?.role, "depots", "update");
   const params = await searchParams;
   const depotSortKeys = ["name"] as const;
 
@@ -56,10 +58,14 @@ const DepotsPage = async ({
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-        <AddDepotDialog />
+        {canManage && <AddDepotDialog />}
       </div>
 
-      <DepotGrid depotList={depotList} pagination={{ page, pageSize, totalCount }} />
+      <DepotGrid
+        depotList={depotList}
+        pagination={{ page, pageSize, totalCount }}
+        canManage={canManage}
+      />
     </div>
   );
 };

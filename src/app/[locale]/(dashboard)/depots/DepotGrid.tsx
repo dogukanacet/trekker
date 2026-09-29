@@ -12,9 +12,11 @@ type DepotRow = Depot & {
 const DepotGrid = ({
   depotList,
   pagination,
+  canManage,
 }: {
   depotList: DepotRow[];
   pagination: DataGridPagination;
+  canManage: boolean;
 }) => {
   const t = useTranslations("Depots");
   const common = useTranslations("Common");
@@ -47,12 +49,16 @@ const DepotGrid = ({
       header: t("routeCount"),
       render: (row) => row._count.routes,
     },
-    {
-      colId: "actions",
-      header: common("actions"),
-      width: 110,
-      render: (row) => <DepotActionsCell depot={row} />,
-    },
+    ...(canManage
+      ? [
+          {
+            colId: "actions",
+            header: common("actions"),
+            width: 110,
+            render: (row: DepotRow) => <DepotActionsCell depot={row} />,
+          },
+        ]
+      : []),
   ];
 
   return <DataGrid<DepotRow> rowData={depotList} columns={columns} pagination={pagination} />;

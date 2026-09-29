@@ -11,7 +11,8 @@ import {
 } from "@/lib/build-prisma-where";
 import { buildOrderBy } from "@/lib/build-order-by";
 import { parsePagination } from "@/lib/pagination";
-import type { Prisma } from "@prisma/client";
+import { hasPermission } from "@/lib/permissions";
+import type { Prisma, Vehicle, Driver, Route } from "@prisma/client";
 
 const dispatchFilters = [
   { key: "status", field: "status", type: "in" },
@@ -46,6 +47,8 @@ const DispatchesPage = async ({
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
+  const role = session?.user?.role;
+  const canManage = hasPermission(role, "dispatches", "update");
 
   const {
     depotId,
@@ -72,12 +75,19 @@ const DispatchesPage = async ({
     ...(driverName ? { driver: { fullName: { contains: driverName, mode: "insensitive" } } } : {}),
     ...(routeName ? { route: { name: { contains: routeName, mode: "insensitive" } } } : {}),
     ...buildPrismaWhereParams(restParams as Record<string, string | undefined>, dispatchFilters),
+    ...(role === "DRIVER" ? { driverId: session?.user?.driverId ?? "" } : {}), // DRIVER sadece kendi sevkiyatlarını görür. Bağlı bir Driver kaydı yoksa boş string
   };
 
   const [vehicleList, driverList, routeList, dispatchList, totalCount] = await Promise.all([
-    prisma.vehicle.findMany({ where: { depot: { tenantId } } }),
-    prisma.driver.findMany({ where: { depot: { tenantId } } }),
-    prisma.route.findMany({ where: { depot: { tenantId } } }),
+    canManage
+      ? prisma.vehicle.findMany({ where: { depot: { tenantId } } })
+      : Promise.resolve<Vehicle[]>([]),
+    canManage
+      ? prisma.driver.findMany({ where: { depot: { tenantId } } })
+      : Promise.resolve<Driver[]>([]),
+    canManage
+      ? prisma.route.findMany({ where: { depot: { tenantId } } })
+      : Promise.resolve<Route[]>([]),
     prisma.dispatch.findMany({
       where,
       include: { vehicle: true, driver: true, route: true },
@@ -96,11 +106,13 @@ const DispatchesPage = async ({
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-        <AddDispatchDialog
-          vehicleList={vehicleList}
-          driverList={driverList}
-          routeList={routeList}
-        />
+        {canManage && (
+          <AddDispatchDialog
+            vehicleList={vehicleList}
+            driverList={driverList}
+            routeList={routeList}
+          />
+        )}
       </div>
 
       <DispatchGrid
@@ -109,6 +121,7 @@ const DispatchesPage = async ({
         routeList={routeList}
         dispatches={dispatchList}
         pagination={{ page, pageSize, totalCount }}
+        canManage={canManage}
       />
     </div>
   );
