@@ -7,6 +7,7 @@ import { Truck, Users, Route as RouteIcon, ClipboardList } from "lucide-react";
 import { typography } from "@/lib/constants";
 import { RenewalRow } from "@/app/[locale]/(dashboard)/RenewalRow";
 import type { Vehicle, Driver } from "@prisma/client";
+import { DriverDashboard } from "@/app/[locale]/(dashboard)/DriverDashboard";
 
 const RENEWAL_WINDOW_DAYS = 30;
 
@@ -21,8 +22,13 @@ type RenewalEntry =
   | { kind: "driver"; id: string; driver: Driver; date: Date };
 
 export default async function Home() {
-  const t = await getTranslations("Dashboard");
   const session = await auth();
+
+  if (session?.user?.role === "DRIVER") {
+    return <DriverDashboard driverId={session.user.driverId} />;
+  }
+
+  const t = await getTranslations("Dashboard");
   const tenantId = session?.user?.tenantId;
 
   const vehicleCount = await prisma.vehicle.count({ where: { depot: { tenantId } } });

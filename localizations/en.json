@@ -11,7 +11,15 @@
     "inspectionExpiring": "Inspection expiry",
     "licenseExpiring": "License expiry",
     "daysLeft": "{days} days left",
-    "noUpcomingRenewals": "No upcoming renewals."
+    "noUpcomingRenewals": "No upcoming renewals.",
+    "welcomeDriver": "Welcome, {name}",
+    "noDriverLinked": "No driver record is linked to your account. Please contact your administrator.",
+    "todaysDispatchesTitle": "Your Dispatches Today",
+    "noDispatchesToday": "You have no dispatches assigned for today.",
+    "upcomingDispatchesTitle": "Your Upcoming Dispatches",
+    "noUpcomingDispatches": "You have no upcoming dispatches.",
+    "licenseExpiresIn": "Your license expires in {days} days.",
+    "viewAllDispatches": "View all dispatches"
   },
   "Sidebar": {
     "dashboard": "Dashboard",

@@ -11,7 +11,15 @@
     "inspectionExpiring": "Muayene bitişi",
     "licenseExpiring": "Ehliyet bitişi",
     "daysLeft": "{days} gün kaldı",
-    "noUpcomingRenewals": "Yaklaşan yenileme bulunmuyor."
+    "noUpcomingRenewals": "Yaklaşan yenileme bulunmuyor.",
+    "welcomeDriver": "Hoş geldin, {name}",
+    "noDriverLinked": "Hesabınıza bağlı bir sürücü kaydı bulunamadı. Lütfen yöneticinizle iletişime geçin.",
+    "todaysDispatchesTitle": "Bugünkü Sevkiyatların",
+    "noDispatchesToday": "Bugün için atanmış bir sevkiyatın yok.",
+    "upcomingDispatchesTitle": "Yaklaşan Sevkiyatların",
+    "noUpcomingDispatches": "Yaklaşan bir sevkiyatın yok.",
+    "licenseExpiresIn": "Ehliyetin {days} gün içinde doluyor.",
+    "viewAllDispatches": "Tüm sevkiyatları görüntüle"
   },
   "Sidebar": {
     "dashboard": "Dashboard",
