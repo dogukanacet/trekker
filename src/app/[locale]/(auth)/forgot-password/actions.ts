@@ -5,17 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { resend } from "@/lib/resend";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
-
-const RESET_TOKEN_EXPIRE_MS = 1000 * 60 * 30; // 30 dakika
+import { generateResetToken, RESET_TOKEN_EXPIRE_MS } from "@/lib/reset-token";
 
 const emailSchema = z.object({ email: z.string().email() });
-function generateResetToken() {
-  // Ham token URL'de (mail linkinde) gönderiliyor; DB'ye asla ham haliyle yazılmıyor,
-  // RefreshToken'daki tokenHash pattern'iyle birebir aynı mantık.
-  const token = randomBytes(32).toString("hex");
-  const tokenHash = createHash("sha256").update(token).digest("hex");
-  return { token, tokenHash };
-}
 
 export const requestPasswordReset = async (
   prevState: { error: string | null; success: boolean; email: string },

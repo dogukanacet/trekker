@@ -27,7 +27,8 @@
     "drivers": "Sürücüler",
     "routes": "Rotalar",
     "dispatches": "Sevkiyatlar",
-    "depots": "Depolar"
+    "depots": "Depolar",
+    "users": "Kullanıcılar"
   },
   "Common": {
     "add": "Ekle",
@@ -37,6 +38,7 @@
     "deleting": "Siliniyor...",
     "updating": "Güncelleniyor...",
     "sending": "Gönderiliyor...",
+    "creating": "Oluşturuluyor...",
     "selectDepot": "Depo seç",
     "language": "Dil",
     "lightMode": "Açık tema",
@@ -163,6 +165,25 @@
     "driverCount": "Sürücü sayısı",
     "routeCount": "Rota sayısı"
   },
+  "Users": {
+    "title": "Kullanıcılar",
+    "subtitle": "Ekip üyelerini ve rollerini yönet.",
+    "email": "E-posta",
+    "role": "Rol",
+    "linkedDriver": "Bağlı Sürücü",
+    "linkedDriverHint": "Sadece henüz bir kullanıcıya bağlanmamış sürücüler listelenir.",
+    "admin": "Yönetici",
+    "dispatcher": "Sevkiyatçı",
+    "driver": "Sürücü",
+    "add": "Kullanıcı Ekle",
+    "sendInvite": "Davet Gönder",
+    "invited": "Davet gönderildi.",
+    "edit": "Düzenle",
+    "updated": "Kullanıcı güncellendi.",
+    "deleted": "Kullanıcı silindi.",
+    "deleteTitle": "Kullanıcıyı Sil",
+    "deleteDescription": "{email} adresini silmek istediğine emin misin?"
+  },
   "Auth": {
     "email": "E-posta",
     "password": "Şifre",
@@ -211,7 +232,10 @@
     "sessionInfoNotFound": "Oturum bilgisi bulunamadı",
     "depotHasRelatedRecords": "Bu depo silinemez çünkü ilişkili araçlar, sürücüler veya rotalar var.",
     "invalidOrExpiredToken": "Bağlantı geçersiz veya süresi dolmuş.",
-    "forbidden": "Bu işlem için yetkiniz yok."
+    "forbidden": "Bu işlem için yetkiniz yok.",
+    "driverNotAvailable": "Seçilen sürücü başka bir kullanıcıya bağlı ya da bulunamadı.",
+    "userNotFound": "Kullanıcı bulunamadı.",
+    "cannotDeleteSelf": "Kendi hesabını silemezsin."
   },
   "NotFound": {
     "title": "Bulunamadı",

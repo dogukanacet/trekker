@@ -27,7 +27,8 @@
     "drivers": "Drivers",
     "routes": "Routes",
     "dispatches": "Dispatches",
-    "depots": "Depots"
+    "depots": "Depots",
+    "users": "Users"
   },
   "Common": {
     "add": "Add",
@@ -37,6 +38,7 @@
     "deleting": "Deleting...",
     "updating": "Updating...",
     "sending": "Sending...",
+    "creating": "Creating...",
     "selectDepot": "Select a depot",
     "language": "Language",
     "lightMode": "Light mode",
@@ -163,6 +165,25 @@
     "driverCount": "Driver count",
     "routeCount": "Route count"
   },
+  "Users": {
+    "title": "Users",
+    "subtitle": "Manage your team members and their roles.",
+    "email": "Email",
+    "role": "Role",
+    "linkedDriver": "Linked Driver",
+    "linkedDriverHint": "Only drivers not yet linked to a user are listed.",
+    "admin": "Admin",
+    "dispatcher": "Dispatcher",
+    "driver": "Driver",
+    "add": "Add User",
+    "sendInvite": "Send Invite",
+    "invited": "Invite sent.",
+    "edit": "Edit",
+    "updated": "User updated.",
+    "deleted": "User deleted.",
+    "deleteTitle": "Delete User",
+    "deleteDescription": "Are you sure you want to delete {email}?"
+  },
   "Auth": {
     "loginTitle": "Login",
     "registerTitle": "Register",
@@ -211,7 +232,10 @@
     "sessionInfoNotFound": "Session information not found",
     "depotHasRelatedRecords": "This depot cannot be deleted because it has related vehicles, drivers, or routes.",
     "invalidOrExpiredToken": "This link is invalid or has expired.",
-    "forbidden": "You don't have permission to perform this action."
+    "forbidden": "You don't have permission to perform this action.",
+    "driverNotAvailable": "The selected driver is linked to another user or not found.",
+    "userNotFound": "User not found.",
+    "cannotDeleteSelf": "You cannot delete your own account."
   },
   "NotFound": {
     "title": "Not found",

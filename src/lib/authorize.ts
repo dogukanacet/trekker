@@ -19,6 +19,7 @@ export async function authorize(resource: Resource, action: Action) {
     ok: true as const,
     t,
     tenantId,
+    userId: session.user.id,
     role: session.user.role,
     driverId: session.user.driverId,
   };
