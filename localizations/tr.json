@@ -235,7 +235,8 @@
     "forbidden": "Bu işlem için yetkiniz yok.",
     "driverNotAvailable": "Seçilen sürücü başka bir kullanıcıya bağlı ya da bulunamadı.",
     "userNotFound": "Kullanıcı bulunamadı.",
-    "cannotDeleteSelf": "Kendi hesabını silemezsin."
+    "cannotDeleteSelf": "Kendi hesabını silemezsin.",
+    "driverRequiredForRole": "Sürücü rolündeki bir kullanıcı için bir sürücü kaydı seçilmelidir."
   },
   "NotFound": {
     "title": "Bulunamadı",

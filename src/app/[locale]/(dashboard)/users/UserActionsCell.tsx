@@ -108,7 +108,7 @@ export function UserActionsCell({
             {role === "DRIVER" && (
               <div className="space-y-2">
                 <Label htmlFor={`driverId-${user.id}`}>{t("linkedDriver")}</Label>
-                <Select name="driverId" defaultValue={user.driver?.id}>
+                <Select name="driverId" defaultValue={user.driver?.id} required>
                   <SelectTrigger id={`driverId-${user.id}`}>
                     <SelectValue>
                       {(value: string) => availableDrivers.find((d) => d.id === value)?.fullName}

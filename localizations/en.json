@@ -235,7 +235,8 @@
     "forbidden": "You don't have permission to perform this action.",
     "driverNotAvailable": "The selected driver is linked to another user or not found.",
     "userNotFound": "User not found.",
-    "cannotDeleteSelf": "You cannot delete your own account."
+    "cannotDeleteSelf": "You cannot delete your own account.",
+    "driverRequiredForRole": "A driver record must be selected for a user with the driver role."
   },
   "NotFound": {
     "title": "Not found",

@@ -78,7 +78,7 @@ export function AddUserDialog({ driverList }: { driverList: DriverOption[] }) {
           {role === "DRIVER" && (
             <div className="space-y-2">
               <Label htmlFor="driverId">{t("linkedDriver")}</Label>
-              <Select name="driverId">
+              <Select name="driverId" required>
                 <SelectTrigger id="driverId">
                   <SelectValue>
                     {(value: string) => availableDrivers.find((d) => d.id === value)?.fullName}

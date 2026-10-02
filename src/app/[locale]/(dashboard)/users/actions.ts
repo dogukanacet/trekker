@@ -40,6 +40,10 @@ export const createUser = async (
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
+  if (validationResult.data.role === "DRIVER" && !validationResult.data.driverId) {
+    return { error: t("driverRequiredForRole"), success: false };
+  }
+
   const existingUser = await prisma.user.findUnique({
     where: { email: validationResult.data.email },
   });
@@ -117,6 +121,10 @@ export const updateUser = async (
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
+  if (validationResult.data.role === "DRIVER" && !validationResult.data.driverId) {
+    return { error: t("driverRequiredForRole"), success: false };
+  }
+
   const targetUser = await prisma.user.findFirst({ where: { id: userId, tenantId } });
   if (!targetUser) {
     return { error: t("userNotFound"), success: false };
@@ -135,16 +143,24 @@ export const updateUser = async (
     }
   }
 
+  const roleChanged = targetUser.role !== validationResult.data.role;
+
   await prisma.$transaction([
     prisma.user.update({ where: { id: userId }, data: { role: validationResult.data.role } }),
-    // Önce bu kullanıcıya bağlı olabilecek eski sürücü kaydını serbest bırak...
     prisma.driver.updateMany({ where: { userId, depot: { tenantId } }, data: { userId: null } }),
-    // ...sonra (varsa) yeni seçilen sürücüye bağla.
     ...(validationResult.data.driverId
       ? [
           prisma.driver.update({
             where: { id: validationResult.data.driverId },
             data: { userId },
+          }),
+        ]
+      : []),
+    ...(roleChanged
+      ? [
+          prisma.refreshToken.updateMany({
+            where: { userId, isCancelled: false },
+            data: { isCancelled: true },
           }),
         ]
       : []),
