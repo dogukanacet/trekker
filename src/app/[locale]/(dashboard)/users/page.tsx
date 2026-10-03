@@ -4,19 +4,22 @@ import { typography } from "@/lib/constants";
 import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
 import { buildOrderBy } from "@/lib/build-order-by";
 import { parsePagination } from "@/lib/pagination";
-import { AddDepotDialog } from "@/app/[locale]/(dashboard)/depots/AddDepotDialog";
-import DepotGrid from "@/app/[locale]/(dashboard)/depots/DepotGrid";
+import { AddUserDialog } from "@/app/[locale]/(dashboard)/users/AddUserDialog";
+import UserGrid from "@/app/[locale]/(dashboard)/users/UserGrid";
 import { getTranslations } from "next-intl/server";
 import type { Prisma } from "@prisma/client";
-import { hasPermission } from "@/lib/permissions";
 
-const depotFilters: FilterFieldConfig[] = [{ key: "q", field: "name", type: "text" }];
+const userFilters: FilterFieldConfig[] = [
+  { key: "q", field: "email", type: "text" },
+  { key: "role", field: "role", type: "in" },
+];
 
-const DepotsPage = async ({
+const UsersPage = async ({
   searchParams,
 }: {
   searchParams: Promise<{
     q?: string;
+    role?: string;
     sortBy?: string;
     sortOrder?: string;
     page?: string;
@@ -25,31 +28,34 @@ const DepotsPage = async ({
 }) => {
   const session = await auth();
   const tenantId = session?.user?.tenantId;
-  const canManage = hasPermission(session?.user?.role, "depots", "update");
   const params = await searchParams;
-  const depotSortKeys = ["name"] as const;
+  const userSortKeys = ["email", "role"] as const;
 
   const { page, pageSize, skip, take } = parsePagination({
     page: params.page,
     pageSize: params.pageSize,
   });
 
-  const where: Prisma.DepotWhereInput = {
+  const where: Prisma.UserWhereInput = {
     tenantId,
-    ...buildPrismaWhereParams(params, depotFilters),
+    ...buildPrismaWhereParams(params, userFilters),
   };
 
-  const [depotList, totalCount] = await Promise.all([
-    prisma.depot.findMany({
+  const [userList, totalCount, driverList] = await Promise.all([
+    prisma.user.findMany({
       where,
-      include: { _count: { select: { vehicles: true, drivers: true, routes: true } } },
-      orderBy: buildOrderBy(depotSortKeys, params.sortBy, params.sortOrder),
+      include: { driver: { select: { id: true, fullName: true } } },
+      orderBy: buildOrderBy(userSortKeys, params.sortBy, params.sortOrder),
       skip,
       take,
     }),
-    prisma.depot.count({ where }),
+    prisma.user.count({ where }),
+    prisma.driver.findMany({
+      where: { depot: { tenantId } },
+      select: { id: true, fullName: true, userId: true },
+    }),
   ]);
-  const t = await getTranslations("Depots");
+  const t = await getTranslations("Users");
 
   return (
     <div className="space-y-6">
@@ -58,16 +64,17 @@ const DepotsPage = async ({
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-        {canManage && <AddDepotDialog />}
+        <AddUserDialog driverList={driverList} />
       </div>
 
-      <DepotGrid
-        depotList={depotList}
+      <UserGrid
+        userList={userList}
+        driverList={driverList}
+        currentUserId={session?.user?.id ?? ""}
         pagination={{ page, pageSize, totalCount }}
-        canManage={canManage}
       />
     </div>
   );
 };
 
-export default DepotsPage;
+export default UsersPage;

@@ -39,6 +39,7 @@ model User {
   createdAt             DateTime @default(now())
   refreshTokens         RefreshToken[]
   passwordResetTokens   PasswordResetToken[]
+  driver                Driver?
 }
 
 model Depot {
@@ -72,6 +73,8 @@ model Driver {
   licenseUntil   DateTime
   createdAt      DateTime  @default(now())
   dispatches     Dispatch[]
+  userId         String? @unique
+  user           User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model Route {

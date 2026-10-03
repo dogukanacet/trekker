@@ -4,9 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
 import { DispatchStatus } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
+import { authorize } from "@/lib/authorize";
 
 const dispatchCreateSchema = z.object({
   routeId: z.string().min(1, "Route ID is required"),
@@ -25,12 +24,9 @@ export const createDispatch = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  const tenantId = session?.user?.tenantId;
-  if (!session || !tenantId) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("dispatches", "create");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const routeId = data.get("routeId") as string;
   const driverId = data.get("driverId") as string;
@@ -87,12 +83,9 @@ export const updateDispatch = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  const tenantId = session?.user?.tenantId;
-  if (!session || !tenantId) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("dispatches", "update");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const routeId = data.get("routeId") as string;
   const driverId = data.get("driverId") as string;
@@ -164,12 +157,9 @@ export const deleteDispatch = async (
   dispatchId: string,
   prevState: { error: string | null; success: boolean },
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  const tenantId = session?.user?.tenantId;
-  if (!session || !tenantId) {
-    return { error: t("unauthenticated"), success: false };
-  }
+  const checkAuth = await authorize("dispatches", "delete");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId } = checkAuth;
 
   const result = await prisma.dispatch.deleteMany({
     where: { id: dispatchId, vehicle: { depot: { tenantId } } },
@@ -186,15 +176,16 @@ export const deleteDispatch = async (
 };
 
 export async function getDispatchDetail(dispatchId: string) {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  const tenantId = session?.user?.tenantId;
-  if (!session || !tenantId) {
-    return { error: t("unauthenticated"), dispatch: null, history: [] };
-  }
+  const checkAuth = await authorize("dispatches", "read");
+  if (!checkAuth.ok) return { error: checkAuth.error, dispatch: null, history: [] };
+  const { t, tenantId, role, driverId } = checkAuth;
 
   const dispatch = await prisma.dispatch.findFirst({
-    where: { id: dispatchId, vehicle: { depot: { tenantId } } },
+    where: {
+      id: dispatchId,
+      vehicle: { depot: { tenantId } },
+      ...(role === "DRIVER" ? { driverId: driverId ?? "" } : {}),
+    },
   });
 
   if (!dispatch) {

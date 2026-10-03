@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { resetPassword } from "@/app/[locale]/(auth)/reset-password/actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ const ResetPasswordPage = () => {
   const common = useTranslations("Common");
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
+  const isInvite = searchParams.get("type") === "invite";
 
   const [actionState, formAction, isPending] = useActionState(resetPassword.bind(null, token), {
     error: null,
@@ -25,7 +26,7 @@ const ResetPasswordPage = () => {
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t("resetPasswordTitle")}</CardTitle>
+          <CardTitle>{isInvite ? t("activateAccountTitle") : t("resetPasswordTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-destructive">{t("invalidResetLink")}</p>
@@ -43,12 +44,15 @@ const ResetPasswordPage = () => {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>{t("resetPasswordTitle")}</CardTitle>
+        <CardTitle>{isInvite ? t("activateAccountTitle") : t("resetPasswordTitle")}</CardTitle>
+        {isInvite && <CardDescription>{t("activateAccountDescription")}</CardDescription>}
       </CardHeader>
       <CardContent>
         {actionState.success ? (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">{t("resetPasswordSuccess")}</p>
+            <p className="text-sm text-muted-foreground">
+              {isInvite ? t("activateAccountSuccess") : t("resetPasswordSuccess")}
+            </p>
             <Link href="/login">
               <Button className="w-full">{t("goToLogin")}</Button>
             </Link>
@@ -61,7 +65,7 @@ const ResetPasswordPage = () => {
             </div>
             {actionState.error && <p className="text-sm text-destructive">{actionState.error}</p>}
             <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? common("updating") : t("resetPassword")}
+              {isPending ? common("updating") : isInvite ? t("setPassword") : t("resetPassword")}
             </Button>
           </form>
         )}

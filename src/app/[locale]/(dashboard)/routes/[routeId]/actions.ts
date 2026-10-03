@@ -4,8 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
-import { getTranslations } from "next-intl/server";
+import { authorize } from "@/lib/authorize";
 
 const stopSchema = z.object({
   routeId: z.string().min(1, "routeId ID is required"),
@@ -19,11 +18,9 @@ export const addStop = async (
   prevState: { error: string | null },
   data: FormData,
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated") };
-  }
+  const checkAuth = await authorize("routes", "create");
+  if (!checkAuth.ok) return { error: checkAuth.error };
+  const { t, tenantId } = checkAuth;
 
   const label = data.get("label") as string;
   const lat = data.get("lat") as string;
@@ -33,6 +30,15 @@ export const addStop = async (
   if (!validationResult.success) {
     const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }) };
+  }
+
+  const route = await prisma.route.findFirst({
+    where: { id: routeId, depot: { tenantId } },
+    select: { id: true },
+  });
+
+  if (!route) {
+    return { error: t("routeNotFound") };
   }
 
   const stopCount = await prisma.routeStop.count({ where: { routeId } });
@@ -57,14 +63,12 @@ export const deleteStop = async (
   routeId: string,
   prevState: { error: string | null },
 ) => {
-  const t = await getTranslations("Errors");
-  const session = await auth();
-  if (!session) {
-    return { error: t("unauthenticated") };
-  }
+  const checkAuth = await authorize("routes", "delete");
+  if (!checkAuth.ok) return { error: checkAuth.error };
+  const { tenantId } = checkAuth;
 
   await prisma.routeStop.deleteMany({
-    where: { id: stopId, route: { depot: { tenantId: session.user?.tenantId } } },
+    where: { id: stopId, route: { depot: { tenantId } } },
   });
   const locale = await getLocale();
   revalidatePath(`/${locale}/routes/${routeId}`);

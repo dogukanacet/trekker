@@ -10,21 +10,34 @@ import {
   Route as RouteIcon,
   ClipboardList,
   Warehouse,
+  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Role } from "@prisma/client";
+import { hasPermission, type Resource } from "@/lib/permissions";
 
-export function Sidebar() {
+export function Sidebar({ role }: { role?: Role }) {
   const pathname = usePathname();
   const t = useTranslations("Sidebar");
 
-  const navItems = [
-    { href: "/", label: t("dashboard"), icon: LayoutDashboard },
-    { href: "/depots", label: t("depots"), icon: Warehouse },
-    { href: "/vehicles", label: t("vehicles"), icon: Truck },
-    { href: "/drivers", label: t("drivers"), icon: Users },
-    { href: "/routes", label: t("routes"), icon: RouteIcon },
-    { href: "/dispatches", label: t("dispatches"), icon: ClipboardList },
+  const navItems: {
+    href: string;
+    label: string;
+    icon: typeof LayoutDashboard;
+    resource: Resource | null;
+  }[] = [
+    { href: "/", label: t("dashboard"), icon: LayoutDashboard, resource: null },
+    { href: "/depots", label: t("depots"), icon: Warehouse, resource: "depots" },
+    { href: "/vehicles", label: t("vehicles"), icon: Truck, resource: "vehicles" },
+    { href: "/drivers", label: t("drivers"), icon: Users, resource: "drivers" },
+    { href: "/routes", label: t("routes"), icon: RouteIcon, resource: "routes" },
+    { href: "/dispatches", label: t("dispatches"), icon: ClipboardList, resource: "dispatches" },
+    { href: "/users", label: t("users"), icon: UserCog, resource: "users" },
   ];
+
+  const visibleItems = navItems.filter(
+    (item) => item.resource === null || hasPermission(role, item.resource, "read"),
+  );
 
   return (
     <aside className="w-56 shrink-0 border-r bg-background flex flex-col">
@@ -32,7 +45,7 @@ export function Sidebar() {
         <span className="font-semibold">Trekker</span>
       </div>
       <nav className="flex-1 p-2 space-y-1">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
           return (

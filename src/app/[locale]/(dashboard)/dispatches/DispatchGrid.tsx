@@ -34,12 +34,14 @@ const DispatchGrid = ({
   driverList,
   routeList,
   pagination,
+  canManage,
 }: {
   dispatches: DispatchRow[];
   vehicleList: Vehicle[];
   driverList: Driver[];
   routeList: Route[];
   pagination: DataGridPagination;
+  canManage: boolean;
 }) => {
   const t = useTranslations("Dispatches");
   const common = useTranslations("Common");
@@ -135,21 +137,25 @@ const DispatchGrid = ({
       render: (row) =>
         row.date ? new Date(row.date).toLocaleDateString() : common("notAvailable"),
     },
-    {
-      colId: "actions",
-      header: common("actions"),
-      width: 110,
-      render: (row) => (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setEditingRow(row)}>
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setRowToDelete(row)}>
-            <Trash2 className="h-4 w-4 text-destructive" />
-          </Button>
-        </div>
-      ),
-    },
+    ...(canManage
+      ? [
+          {
+            colId: "actions",
+            header: common("actions"),
+            width: 110,
+            render: (row: DispatchRow) => (
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={() => setEditingRow(row)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setRowToDelete(row)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
   return (
     <>
