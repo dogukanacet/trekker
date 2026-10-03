@@ -209,7 +209,11 @@
     "goToLogin": "Giriş sayfasına git",
     "invalidResetLink": "Bu şifre sıfırlama linki geçersiz veya süresi dolmuş. Yeni bir link isteyin.",
     "requestNewLink": "Yeni link iste",
-    "forgotPassword": "Şifreni mi unuttun?"
+    "forgotPassword": "Şifreni mi unuttun?",
+    "activateAccountTitle": "Hesabını Aktifleştir",
+    "activateAccountDescription": "Trekker'a hoş geldin! Devam etmek için bir şifre belirle.",
+    "setPassword": "Şifre Oluştur",
+    "activateAccountSuccess": "Hesabın aktifleştirildi! Artık giriş yapabilirsin."
   },
   "Errors": {
     "validationFailed": "Doğrulama başarısız: {message}",

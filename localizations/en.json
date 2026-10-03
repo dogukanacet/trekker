@@ -209,7 +209,11 @@
     "goToLogin": "Go to login",
     "invalidResetLink": "This password reset link is invalid or has expired. Please request a new one.",
     "requestNewLink": "Request a new link",
-    "forgotPassword": "Forgot password?"
+    "forgotPassword": "Forgot password?",
+    "activateAccountTitle": "Activate Your Account",
+    "activateAccountDescription": "Welcome to Trekker! Set a password to continue.",
+    "setPassword": "Create Password",
+    "activateAccountSuccess": "Your account is now active! You can sign in."
   },
   "Errors": {
     "validationFailed": "Validation failed: {message}",

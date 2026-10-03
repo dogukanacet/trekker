@@ -86,7 +86,8 @@ export const createUser = async (
     },
   });
 
-  const inviteUrl = `${process.env.AUTH_URL}/reset-password?token=${token}`;
+  const inviteUrl = `${process.env.AUTH_URL}/reset-password?token=${token}&type=invite`;
+
   await resend.emails.send({
     from: "onboarding@resend.dev",
     to: user.email,
