@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { getSession } from "next-auth/react";
 import { loginAction } from "@/app/[locale]/(auth)/login/actions";
 import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import { useTranslations } from "next-intl";
 export function LoginForm() {
   const t = useTranslations("Auth");
   const router = useRouter();
-  const { update } = useSession();
   const [state, formAction, isPending] = useActionState(loginAction, {
     error: null,
     success: false,
@@ -20,8 +19,9 @@ export function LoginForm() {
 
   useEffect(() => {
     if (state.success) {
-      update();
-      router.push("/");
+      getSession().then(() => {
+        router.push("/");
+      });
     }
   }, [state.success]);
 
