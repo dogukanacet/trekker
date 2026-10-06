@@ -71,7 +71,12 @@ export function RouteActionsCell({ route, depotList }: { route: Route; depotList
 
   return (
     <div className="flex h-full items-center justify-end gap-1">
-      <Button variant="ghost" size="icon" render={<Link href={`/routes/${route.id}`} />}>
+      <Button
+        variant="ghost"
+        size="icon"
+        nativeButton={false}
+        render={<Link href={`/routes/${route.id}`} />}
+      >
         <Eye className="h-4 w-4" />
       </Button>
 

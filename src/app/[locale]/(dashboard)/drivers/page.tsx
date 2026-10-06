@@ -58,13 +58,11 @@ const DriversPage = async ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-center justify-between">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-      </div>
-      <div className="flex flex-center justify-between">
         <AddDriverDialog depotList={depotList} />
       </div>
       <DriverGrid

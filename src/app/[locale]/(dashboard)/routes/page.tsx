@@ -63,9 +63,6 @@ const RoutesPage = async ({
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-      </div>
-      <div className="flex items-center justify-between">
-        <div />
         <AddRouteDialog depotList={depotList} />
       </div>
 
