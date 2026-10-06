@@ -1,13 +1,14 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "@/i18n/navigation";
 import { useLocale } from "next-intl";
 import { useEffect, useRef } from "react";
-import { signOut } from "next-auth/react";
+
+const VALIDATE_INTERVAL_MS = 30_000;
 
 export const SessionRefresher = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const locale = useLocale();
   const isRefreshing = useRef(false); // preventing multiple refresh calls
@@ -19,7 +20,6 @@ export const SessionRefresher = () => {
       fetch("/api/auth/refresh", { method: "POST" })
         .then((response) => {
           if (response.ok) {
-            console.log("refresh ok");
             router.refresh();
           } else {
             signOut({ callbackUrl: `/${locale}/login` });
@@ -29,7 +29,32 @@ export const SessionRefresher = () => {
           isRefreshing.current = false;
         });
     }
-  }, [session, router]);
+  }, [session, router, locale]);
+
+  // Rol (veya ileride başka bir hesap durumu) sunucu tarafında değişmişse,
+  // access token süresi dolmasını beklemeden kullanıcıyı çıkışa zorlar.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const validateSession = async () => {
+      try {
+        const response = await fetch("/api/auth/validate");
+        if (!response.ok) {
+          signOut({ callbackUrl: `/${locale}/login` });
+        }
+      } catch {
+        // Ağ hatasında sessizce geç, bir sonraki denemede tekrar kontrol edilir.
+      }
+    };
+
+    const intervalId = setInterval(validateSession, VALIDATE_INTERVAL_MS);
+    window.addEventListener("focus", validateSession);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("focus", validateSession);
+    };
+  }, [status, locale]);
 
   return null;
 };

@@ -6,10 +6,12 @@ import { typography } from "@/lib/constants";
 import { dispatchStatusColors } from "@/lib/status-colors";
 import { ClipboardList, ShieldAlert } from "lucide-react";
 import type { DispatchStatus } from "@prisma/client";
+import type { RoleViewProps } from "@/lib/role-views";
 
 const RENEWAL_WINDOW_DAYS = 30;
 
-export async function DriverDashboard({ driverId }: { driverId: string | null }) {
+export async function DriverDashboard({ session }: RoleViewProps) {
+  const driverId = session?.user?.driverId ?? null;
   const t = await getTranslations("Dashboard");
   const dt = await getTranslations("Dispatches");
 
