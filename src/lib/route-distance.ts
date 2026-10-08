@@ -31,7 +31,12 @@ export function calculateRouteSummary(
 
   let totalDistanceKm = 0;
   for (let i = 0; i < stops.length - 1; i++) {
-    totalDistanceKm += haversineDistanceKm(stops[i], stops[i + 1]);
+    const current = stops[i];
+    const next = stops[i + 1];
+
+    if (!current || !next) continue;
+
+    totalDistanceKm += haversineDistanceKm(current, next);
   }
 
   const estimatedDurationMinutes = (totalDistanceKm / AVERAGE_SPEED_KMH) * 60;
