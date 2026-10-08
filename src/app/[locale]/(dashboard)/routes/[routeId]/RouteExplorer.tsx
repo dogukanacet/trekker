@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useMemo } from "react";
 import type { RouteStop } from "@prisma/client";
 import * as routeStopActions from "@/app/[locale]/(dashboard)/routes/[routeId]/actions";
 import RouteMapLoader from "./RouteMapLoader";
@@ -8,12 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Route as RouteIcon, Clock } from "lucide-react";
 import { typography } from "@/lib/constants";
 import { useTranslations } from "next-intl";
+import { calculateRouteSummary } from "@/lib/route-distance";
 
 export default function RouteExplorer({ stops, routeId }: { stops: RouteStop[]; routeId: string }) {
   const [selectedStopId, setSelectedStopId] = useState<string | null>(null);
+  const summary = useMemo(() => calculateRouteSummary(stops), [stops]);
   const t = useTranslations("RouteDetail");
   const [addState, addAction, isAddPending] = useActionState(
     routeStopActions.addStop.bind(null, routeId),
@@ -25,7 +27,28 @@ export default function RouteExplorer({ stops, routeId }: { stops: RouteStop[]; 
       <Card className="overflow-hidden p-0">
         <RouteMapLoader selectedStopId={selectedStopId} stops={stops} />
       </Card>
-
+      {summary && (
+        <Card>
+          <CardContent className="flex items-center gap-6 py-4">
+            <div className="flex items-center gap-2">
+              <RouteIcon className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">{summary.totalDistanceKm.toFixed(1)} km</p>
+                <p className={typography.secondary}>{t("totalDistance")}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">
+                  {Math.round(summary.estimatedDurationMinutes)} {t("minutesShort")}
+                </p>
+                <p className={typography.secondary}>{t("estimatedDuration")}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className={typography.sectionTitle}>{t("stops")}</CardTitle>
