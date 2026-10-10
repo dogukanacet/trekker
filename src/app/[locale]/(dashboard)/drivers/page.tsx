@@ -3,17 +3,11 @@ import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
 import { AddDriverDialog } from "@/app/[locale]/(dashboard)/drivers/AddDriverDialog";
 import DriverGrid from "@/app/[locale]/(dashboard)/drivers/DriverGrid";
+import { buildDriverWhere, driverSortKeys } from "@/app/[locale]/(dashboard)/drivers/query";
+import { ExportButtons } from "@/components/export-buttons";
 import { getTranslations } from "next-intl/server";
 import { buildOrderBy } from "@/lib/build-order-by";
-import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
 import { parsePagination } from "@/lib/pagination";
-import type { Prisma } from "@prisma/client";
-
-const driverFilters: FilterFieldConfig[] = [
-  { key: "q", field: "fullName", type: "text" },
-  { key: "licenseUntil", field: "licenseUntil", type: "dateRange" },
-  { key: "depotId", field: "depotId", type: "in" },
-];
 
 const DriversPage = async ({
   searchParams,
@@ -32,17 +26,13 @@ const DriversPage = async ({
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   const params = await searchParams;
-  const driverSortKeys = ["fullName", "depotId", "licenseUntil"] as const;
 
   const { page, pageSize, skip, take } = parsePagination({
     page: params.page,
     pageSize: params.pageSize,
   });
 
-  const where: Prisma.DriverWhereInput = {
-    depot: { tenantId },
-    ...buildPrismaWhereParams(params, driverFilters),
-  };
+  const where = buildDriverWhere(params, tenantId);
 
   const [depotList, driverList, totalCount] = await Promise.all([
     prisma.depot.findMany({ where: { tenantId } }),
@@ -63,7 +53,10 @@ const DriversPage = async ({
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-        <AddDriverDialog depotList={depotList} />
+        <div className="flex items-center gap-2">
+          <ExportButtons resource="drivers" />
+          <AddDriverDialog depotList={depotList} />
+        </div>
       </div>
       <DriverGrid
         driverList={driverList}

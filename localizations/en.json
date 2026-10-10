@@ -56,7 +56,11 @@
     "loading": "Loading...",
     "startDate": "Start date",
     "endDate": "End date",
-    "pageInfo": "Page {page} of {totalPages} ({totalCount} records)"
+    "pageInfo": "Page {page} of {totalPages} ({totalCount} records)",
+    "exportCsv": "Download as CSV",
+    "exportPdf": "Download as PDF",
+    "exportFailed": "Export failed.",
+    "generatedAt": "Generated: {date}"
   },
   "Vehicles": {
     "title": "Vehicles",
