@@ -1,12 +1,17 @@
 import type { Resource } from "@/lib/permissions";
-import type { ExportContext, ExportParams, ExportPayload } from "@/lib/export/payload";
-import { buildDriversExport } from "@/lib/export/drivers";
+import { EXPORT_ROW_LIMIT, type ExportContext, type ExportParams } from "@/lib/export/types";
+import { getDriverRows } from "@/app/[locale]/(dashboard)/drivers/query";
 
 type ExportEntry = {
   permission: Resource;
-  build: (params: ExportParams, ctx: ExportContext) => Promise<ExportPayload>;
+  fetchRows: (params: ExportParams, ctx: ExportContext) => Promise<unknown[]>;
 };
 
+const exportPage = { skip: 0, take: EXPORT_ROW_LIMIT };
+
 export const exportRegistry: Record<string, ExportEntry> = {
-  drivers: { permission: "drivers", build: buildDriversExport },
+  drivers: {
+    permission: "drivers",
+    fetchRows: (params, ctx) => getDriverRows(params, ctx.tenantId, exportPage),
+  },
 };

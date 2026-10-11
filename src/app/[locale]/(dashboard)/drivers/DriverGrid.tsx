@@ -63,7 +63,14 @@ const DriverGrid = ({
     },
   ];
 
-  return <DataGrid<Driver> rowData={driverList} columns={columns} pagination={pagination} />;
+  return (
+    <DataGrid<Driver>
+      rowData={driverList}
+      columns={columns}
+      pagination={pagination}
+      exportOptions={{ resource: "drivers", title: t("title") }}
+    />
+  );
 };
 
 export default DriverGrid;

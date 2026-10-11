@@ -44,7 +44,14 @@ const UsersPage = async ({
   const [userList, totalCount, driverList] = await Promise.all([
     prisma.user.findMany({
       where,
-      include: { driver: { select: { id: true, fullName: true } } },
+      select: {
+        id: true,
+        tenantId: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        driver: { select: { id: true, fullName: true } },
+      },
       orderBy: buildOrderBy(userSortKeys, params.sortBy, params.sortOrder),
       skip,
       take,

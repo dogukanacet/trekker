@@ -7,20 +7,21 @@ export type GridColumn<T> = {
   colId: string;
   header: string;
   value?: (
+    /** Ham değer — sıralama URL'e yansıtılırken ve filtre eşleştirmesinde kullanılır. */
     row: T,
-  ) =>
-    | string
-    | number
-    | Date
-    | null
-    | undefined; /** Ham değer — sıralama URL'e yansıtılırken ve filtre eşleştirmesinde kullanılır. */
+  ) => string | number | Date | null | undefined;
   render?: (
+    /** Hücrenin görseli. Verilmezse `value`'nun sonucu düz metin olarak gösterilir. */
     row: T,
-  ) => ReactNode; /** Hücrenin görseli. Verilmezse `value`'nun sonucu düz metin olarak gösterilir. */
+  ) => ReactNode;
   filter?: FilterType;
   filterParams?: Record<string, unknown>;
   width?: number;
   paramKey?: string; /** URL query parametresi anahtarı. Verilmezse colId kullanılır. */
+  exportValue?: (
+    /** Export'ta kullanılacak değer. Verilmezse `value` kullanılır; ikisi de yoksa kolon export'a girmez (örn. actions). */
+    row: T,
+  ) => string | number | Date | null | undefined;
 };
 
 export function buildColumnDefs<T>(columns: GridColumn<T>[]): ColDef<T>[] {

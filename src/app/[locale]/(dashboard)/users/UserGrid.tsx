@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { DataGrid, type GridColumn, type DataGridPagination } from "@/components/data-grid";
 import { UserActionsCell } from "@/app/[locale]/(dashboard)/users/UserActionsCell";
 
-type UserRow = User & { driver: { id: string; fullName: string } | null };
+type UserRow = Omit<User, "passwordHash"> & { driver: { id: string; fullName: string } | null };
 type DriverOption = { id: string; fullName: string; userId: string | null };
 
 const UserGrid = ({

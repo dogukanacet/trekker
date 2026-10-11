@@ -34,7 +34,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 
-type UserRow = User & { driver: { id: string; fullName: string } | null };
+type UserRow = Omit<User, "passwordHash"> & { driver: { id: string; fullName: string } | null };
 type DriverOption = { id: string; fullName: string; userId: string | null };
 
 export function UserActionsCell({

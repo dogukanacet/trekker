@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { routing } from "@/i18n/routing";
 import { exportRegistry } from "@/lib/export/registry";
 
 export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
@@ -22,21 +21,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  // Tenant her zaman session'dan geliyor, query'den hiç okunmuyor.
   const query = Object.fromEntries(new URL(request.url).searchParams);
-
-  // /api middleware'den muaf olduğu için locale'i istemci query ile gönderiyor.
-  const requestedLocale = query.locale;
-  const locale =
-    requestedLocale && (routing.locales as readonly string[]).includes(requestedLocale)
-      ? requestedLocale
-      : routing.defaultLocale;
-
-  const payload = await entry.build(query, {
+  const rows = await entry.fetchRows(query, {
     tenantId: user.tenantId,
     role: user.role,
     driverId: user.driverId,
-    locale,
   });
 
-  return NextResponse.json(payload);
+  return NextResponse.json({ rows });
 }
