@@ -1,16 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
-import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
-import { buildOrderBy } from "@/lib/build-order-by";
 import { parsePagination } from "@/lib/pagination";
 import { AddDepotDialog } from "@/app/[locale]/(dashboard)/depots/AddDepotDialog";
 import DepotGrid from "@/app/[locale]/(dashboard)/depots/DepotGrid";
+import { buildDepotWhere, getDepotRows } from "@/app/[locale]/(dashboard)/depots/query";
 import { getTranslations } from "next-intl/server";
-import type { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
-
-const depotFilters: FilterFieldConfig[] = [{ key: "q", field: "name", type: "text" }];
 
 const DepotsPage = async ({
   searchParams,
@@ -27,27 +23,15 @@ const DepotsPage = async ({
   const tenantId = session?.user?.tenantId;
   const canManage = hasPermission(session?.user?.role, "depots", "update");
   const params = await searchParams;
-  const depotSortKeys = ["name"] as const;
 
   const { page, pageSize, skip, take } = parsePagination({
     page: params.page,
     pageSize: params.pageSize,
   });
 
-  const where: Prisma.DepotWhereInput = {
-    tenantId,
-    ...buildPrismaWhereParams(params, depotFilters),
-  };
-
   const [depotList, totalCount] = await Promise.all([
-    prisma.depot.findMany({
-      where,
-      include: { _count: { select: { vehicles: true, drivers: true, routes: true } } },
-      orderBy: buildOrderBy(depotSortKeys, params.sortBy, params.sortOrder),
-      skip,
-      take,
-    }),
-    prisma.depot.count({ where }),
+    getDepotRows(params, tenantId, { skip, take }),
+    prisma.depot.count({ where: buildDepotWhere(params, tenantId) }),
   ]);
   const t = await getTranslations("Depots");
 

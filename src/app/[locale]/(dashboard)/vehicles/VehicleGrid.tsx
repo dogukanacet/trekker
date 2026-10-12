@@ -93,7 +93,14 @@ const VehicleGrid = ({
     },
   ];
 
-  return <DataGrid<Vehicle> rowData={vehicleList} columns={columns} pagination={pagination} />;
+  return (
+    <DataGrid<Vehicle>
+      rowData={vehicleList}
+      columns={columns}
+      pagination={pagination}
+      exportOptions={{ resource: "vehicles", title: t("title") }}
+    />
+  );
 };
 
 export default VehicleGrid;
