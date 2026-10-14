@@ -45,8 +45,8 @@ export const resetPassword = async (
       where: { id: resetToken.id },
       data: { isCancelled: true },
     }),
-    // Şifre değiştiğinde mevcut tüm oturumların (refresh token'ların) da
-    // geçersiz kılınması güvenlik açısından standart bir pratik.
+    // Invalidating all existing sessions (refresh tokens) when the password changes
+    // is standard security practice.
     prisma.refreshToken.updateMany({
       where: { userId: resetToken.userId, isCancelled: false },
       data: { isCancelled: true },

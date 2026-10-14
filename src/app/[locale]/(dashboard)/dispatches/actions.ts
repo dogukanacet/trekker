@@ -66,8 +66,8 @@ export const createDispatch = async (
     },
   });
 
-  // Dispatch her zaman PLANNED durumuyla oluşuyor (şemadaki @default) —
-  // geçmişin ilk kaydını da burada, o durumla düşüyoruz.
+  // Dispatches are always created with PLANNED status (the schema's @default) —
+  // create the first history entry here with that status as well.
   await prisma.dispatchStatusHistory.create({
     data: { dispatchId: dispatch.id, status: dispatch.status },
   });

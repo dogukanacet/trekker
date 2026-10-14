@@ -2,7 +2,7 @@ import { TextFilter } from "./text-filter";
 import { MultiSelectFilter } from "./multi-select-filter";
 import { DateRangeFilter } from "./date-range-filter";
 
-const alwaysPass = () => true; // Gerçek filtreleme sunucuda yapılıyor, bu sadece kozmetik.
+const alwaysPass = () => true; // Filtering is performed on the server; this is cosmetic only.
 
 export const filterRegistry = {
   text: { component: TextFilter, doesFilterPass: alwaysPass },

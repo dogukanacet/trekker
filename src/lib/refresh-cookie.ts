@@ -3,9 +3,9 @@ import { cookies } from "next/headers";
 export const REFRESH_COOKIE_NAME = "trekker.refresh-token";
 
 /**
- * REFRESH_TOKEN_EXPIRE_MS env değişkenini okur ve doğrular.
- * Geçersizse (tanımsız, NaN, negatif) fırlatır — sessiz NaN/Invalid Date
- * durumlarının DB'ye veya cookie'ye sızmasını engeller.
+ * Reads and validates the REFRESH_TOKEN_EXPIRE_MS environment variable.
+ * Throws if invalid (undefined, NaN, or negative), preventing silent NaN/Invalid Date
+ * values from leaking into the database or cookie.
  */
 export function getRefreshTokenExpiryMs(): number {
   const expiresIn = Number(process.env.REFRESH_TOKEN_EXPIRE_MS);
@@ -18,8 +18,8 @@ export function getRefreshTokenExpiryMs(): number {
 }
 
 /**
- * Refresh token cookie'sini set eder. Yalnızca Server Action / Route Handler
- * içinde çağrılabilir (Next.js kısıtı — Server Component'te hata fırlatır).
+ * Sets the refresh token cookie. Can only be called from a Server Action / Route Handler
+ * (a Next.js restriction — calling it in a Server Component throws an error).
  */
 export async function setRefreshCookie(rawToken: string, expiresInMs: number) {
   const cookieStore = await cookies();

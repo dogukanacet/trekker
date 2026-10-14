@@ -1,21 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
-import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
-import { buildOrderBy } from "@/lib/build-order-by";
 import { parsePagination } from "@/lib/pagination";
 import { AddVehicleDialog } from "@/app/[locale]/(dashboard)/vehicles/AddVehicleDialog";
 import VehicleGrid from "@/app/[locale]/(dashboard)/vehicles/VehicleGrid";
+import { buildVehicleWhere, getVehicleRows } from "@/app/[locale]/(dashboard)/vehicles/query";
 import { getTranslations } from "next-intl/server";
-import type { Prisma } from "@prisma/client";
-
-const vehicleFilters: FilterFieldConfig[] = [
-  { key: "q", field: "plate", type: "text" },
-  { key: "model", field: "model", type: "text" },
-  { key: "depotId", field: "depotId", type: "in" },
-  { key: "insuranceUntil", field: "insuranceUntil", type: "dateRange" },
-  { key: "inspectionUntil", field: "inspectionUntil", type: "dateRange" },
-];
 
 const VehiclesPage = async ({
   searchParams,
@@ -38,27 +28,15 @@ const VehiclesPage = async ({
   const tenantId = session?.user?.tenantId;
   const params = await searchParams;
 
-  const vehicleSortKeys = ["plate", "model", "insuranceUntil", "inspectionUntil"] as const;
-
   const { page, pageSize, skip, take } = parsePagination({
     page: params.page,
     pageSize: params.pageSize,
   });
 
-  const where: Prisma.VehicleWhereInput = {
-    depot: { tenantId },
-    ...buildPrismaWhereParams(params, vehicleFilters),
-  };
-
   const [depotList, vehicleList, totalCount] = await Promise.all([
     prisma.depot.findMany({ where: { tenantId } }),
-    prisma.vehicle.findMany({
-      where,
-      orderBy: buildOrderBy(vehicleSortKeys, params.sortBy, params.sortOrder),
-      skip,
-      take,
-    }),
-    prisma.vehicle.count({ where }),
+    getVehicleRows(params, tenantId, { skip, take }),
+    prisma.vehicle.count({ where: buildVehicleWhere(params, tenantId) }),
   ]);
   const t = await getTranslations("Vehicles");
 

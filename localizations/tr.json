@@ -56,7 +56,11 @@
     "loading": "Yükleniyor...",
     "startDate": "Başlangıç tarihi",
     "endDate": "Bitiş tarihi",
-    "pageInfo": "Sayfa {page} / {totalPages} ({totalCount} kayıt)"
+    "pageInfo": "Sayfa {page} / {totalPages} ({totalCount} kayıt)",
+    "exportCsv": "CSV olarak indir",
+    "exportPdf": "PDF olarak indir",
+    "exportFailed": "Dışa aktarma başarısız oldu.",
+    "generatedAt": "Oluşturulma: {date}"
   },
   "Vehicles": {
     "title": "Araçlar",

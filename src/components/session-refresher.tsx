@@ -31,8 +31,8 @@ export const SessionRefresher = () => {
     }
   }, [session, router, locale]);
 
-  // Rol (veya ileride başka bir hesap durumu) sunucu tarafında değişmişse,
-  // access token süresi dolmasını beklemeden kullanıcıyı çıkışa zorlar.
+  // If the role (or another account state in the future) changes on the server,
+  // force the user to sign out without waiting for the access token to expire.
   useEffect(() => {
     if (status !== "authenticated") return;
 
@@ -43,7 +43,7 @@ export const SessionRefresher = () => {
           signOut({ callbackUrl: `/${locale}/login` });
         }
       } catch {
-        // Ağ hatasında sessizce geç, bir sonraki denemede tekrar kontrol edilir.
+        // Skip network errors; the state will be checked again on the next attempt.
       }
     };
 

@@ -7,20 +7,21 @@ export type GridColumn<T> = {
   colId: string;
   header: string;
   value?: (
+    /** Raw value — used when reflecting sorting in the URL and matching filters. */
     row: T,
-  ) =>
-    | string
-    | number
-    | Date
-    | null
-    | undefined; /** Ham değer — sıralama URL'e yansıtılırken ve filtre eşleştirmesinde kullanılır. */
+  ) => string | number | Date | null | undefined;
   render?: (
+    /** Cell rendering. If omitted, the result of `value` is displayed as plain text. */
     row: T,
-  ) => ReactNode; /** Hücrenin görseli. Verilmezse `value`'nun sonucu düz metin olarak gösterilir. */
+  ) => ReactNode;
   filter?: FilterType;
   filterParams?: Record<string, unknown>;
   width?: number;
   paramKey?: string; /** URL query parametresi anahtarı. Verilmezse colId kullanılır. */
+  exportValue?: (
+    /** Value used for export. If omitted, `value` is used; if both are missing, the column is excluded (e.g. actions). */
+    row: T,
+  ) => string | number | Date | null | undefined;
 };
 
 export function buildColumnDefs<T>(columns: GridColumn<T>[]): ColDef<T>[] {
@@ -36,8 +37,8 @@ export function buildColumnDefs<T>(columns: GridColumn<T>[]): ColDef<T>[] {
       filterParams: col.filterParams,
     };
 
-    // Sıralama sadece kozmetik: gerçek sıra sunucudan (Prisma orderBy) geliyor,
-    // AG Grid'in kendi client-side yeniden sıralamasını devre dışı bırakıyoruz.
+    // Sorting is cosmetic only: the actual order comes from the server (Prisma orderBy),
+    // so disable AG Grid's client-side reordering.
     if (isSortable) {
       colDef.comparator = () => 0;
     }

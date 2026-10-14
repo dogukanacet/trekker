@@ -28,7 +28,7 @@ export const requestPasswordReset = async (
     where: { email: validationResult.data.email },
   });
 
-  // Kullanıcı bulunamasa da başarı dönüyoruz — email enumeration'ı önlemek için.
+  // Return success even if the user is not found to prevent email enumeration.
   if (user) {
     const { token, tokenHash } = generateResetToken();
 

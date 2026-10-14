@@ -18,6 +18,7 @@ import { useGridQuerySync } from "./use-grid-query-sync";
 import { filterRegistry, isRegisteredFilterType } from "./filter-registry";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { PaginationControls } from "./pagination-controls";
+import { ExportButtons } from "./export-buttons";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -68,6 +69,8 @@ export type DataGridPagination = {
   totalCount: number;
 };
 
+export type DataGridExportOptions = { resource: string; title: string };
+
 type DataGridProps<T> = Omit<AgGridReactProps<T>, "columnDefs" | "pagination"> & {
   columns: GridColumn<T>[];
   renderDetail?: (row: T) => ReactNode;
@@ -76,6 +79,7 @@ type DataGridProps<T> = Omit<AgGridReactProps<T>, "columnDefs" | "pagination"> &
   singleExpand?: boolean;
   pagination?: DataGridPagination;
   minHeight?: number;
+  exportOptions?: DataGridExportOptions;
 };
 
 function DataGridInner<T>(
@@ -91,6 +95,7 @@ function DataGridInner<T>(
     onGridReady,
     onSortChanged,
     onFilterChanged,
+    exportOptions,
     ...props
   }: DataGridProps<T>,
   ref: React.ForwardedRef<AgGridReact<DisplayRow<T>>>,
@@ -197,6 +202,11 @@ function DataGridInner<T>(
 
   return (
     <div style={{ width: "100%" }}>
+      {exportOptions && (
+        <div className="mb-2 flex justify-end">
+          <ExportButtons<T> columns={columns} {...exportOptions} />
+        </div>
+      )}
       <div
         className="ag-grid-min-height"
         style={{ "--grid-min-height": `${minHeight}px` } as React.CSSProperties}

@@ -1,6 +1,6 @@
 const EARTH_RADIUS_KM = 6371;
-// Durak araları genelde şehir içi/karma trafik varsayımıyla tahmin ediliyor —
-// gerçek trafik verisi değil, kaba bir referans.
+// Distances between stops are estimated assuming typical urban/mixed traffic —
+// this is a rough reference, not real traffic data.
 const AVERAGE_SPEED_KMH = 40;
 
 function toRadians(degrees: number): number {

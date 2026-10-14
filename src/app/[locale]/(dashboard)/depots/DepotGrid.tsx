@@ -38,16 +38,19 @@ const DepotGrid = ({
       colId: "vehicleCount",
       header: t("vehicleCount"),
       render: (row) => row._count.vehicles,
+      exportValue: (row) => row._count.vehicles,
     },
     {
       colId: "driverCount",
       header: t("driverCount"),
       render: (row) => row._count.drivers,
+      exportValue: (row) => row._count.drivers,
     },
     {
       colId: "routeCount",
       header: t("routeCount"),
       render: (row) => row._count.routes,
+      exportValue: (row) => row._count.routes,
     },
     ...(canManage
       ? [
@@ -61,7 +64,14 @@ const DepotGrid = ({
       : []),
   ];
 
-  return <DataGrid<DepotRow> rowData={depotList} columns={columns} pagination={pagination} />;
+  return (
+    <DataGrid<DepotRow>
+      rowData={depotList}
+      columns={columns}
+      pagination={pagination}
+      exportOptions={{ resource: "depots", title: t("title") }}
+    />
+  );
 };
 
 export default DepotGrid;

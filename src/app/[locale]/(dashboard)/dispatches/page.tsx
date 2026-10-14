@@ -4,30 +4,14 @@ import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
 import { AddDispatchDialog } from "@/app/[locale]/(dashboard)/dispatches/AddDispatchDialog";
 import { getTranslations } from "next-intl/server";
-import {
-  buildPrismaWhereParams,
-  type FilterFieldConfig,
-  SearchParamsFromFilters,
-} from "@/lib/build-prisma-where";
-import { buildOrderBy } from "@/lib/build-order-by";
 import { parsePagination } from "@/lib/pagination";
 import { hasPermission } from "@/lib/permissions";
-import type { Prisma, Vehicle, Driver, Route } from "@prisma/client";
-
-const dispatchFilters = [
-  { key: "status", field: "status", type: "in" },
-  { key: "date", field: "date", type: "dateRange" },
-] as const satisfies FilterFieldConfig[];
-
-const dispatchSortKeys = {
-  status: "status",
-  date: "date",
-  vehiclePlate: ["vehicle", "plate"],
-  driverName: ["driver", "fullName"],
-  routeName: ["route", "name"],
-} as const;
-
-type DispatchFilterParams = SearchParamsFromFilters<typeof dispatchFilters>;
+import {
+  buildDispatchWhere,
+  getDispatchRows,
+  type DispatchFilterParams,
+} from "@/app/[locale]/(dashboard)/dispatches/query";
+import type { Vehicle, Driver, Route } from "@prisma/client";
 
 const DispatchesPage = async ({
   searchParams,
@@ -48,35 +32,15 @@ const DispatchesPage = async ({
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   const role = session?.user?.role;
+  const scope = { tenantId, role, driverId: session?.user?.driverId };
   const canManage = hasPermission(role, "dispatches", "update");
 
-  const {
-    depotId,
-    vehiclePlate,
-    driverName,
-    routeName,
-    sortBy,
-    sortOrder,
-    page: pageParam,
-    pageSize: pageSizeParam,
-    ...restParams
-  } = await searchParams;
+  const params = (await searchParams) as Record<string, string | undefined>;
 
   const { page, pageSize, skip, take } = parsePagination({
-    page: pageParam,
-    pageSize: pageSizeParam,
+    page: params.page,
+    pageSize: params.pageSize,
   });
-
-  const where: Prisma.DispatchWhereInput = {
-    vehicle: {
-      depot: { tenantId, ...(depotId ? { id: depotId } : {}) },
-      ...(vehiclePlate ? { plate: { contains: vehiclePlate, mode: "insensitive" } } : {}),
-    },
-    ...(driverName ? { driver: { fullName: { contains: driverName, mode: "insensitive" } } } : {}),
-    ...(routeName ? { route: { name: { contains: routeName, mode: "insensitive" } } } : {}),
-    ...buildPrismaWhereParams(restParams as Record<string, string | undefined>, dispatchFilters),
-    ...(role === "DRIVER" ? { driverId: session?.user?.driverId ?? "" } : {}), // DRIVER sadece kendi sevkiyatlarını görür. Bağlı bir Driver kaydı yoksa boş string
-  };
 
   const [vehicleList, driverList, routeList, dispatchList, totalCount] = await Promise.all([
     canManage
@@ -88,14 +52,8 @@ const DispatchesPage = async ({
     canManage
       ? prisma.route.findMany({ where: { depot: { tenantId } } })
       : Promise.resolve<Route[]>([]),
-    prisma.dispatch.findMany({
-      where,
-      include: { vehicle: true, driver: true, route: true },
-      orderBy: buildOrderBy(dispatchSortKeys, sortBy, sortOrder),
-      skip,
-      take,
-    }),
-    prisma.dispatch.count({ where }),
+    getDispatchRows(params, scope, { skip, take }),
+    prisma.dispatch.count({ where: buildDispatchWhere(params, scope) }),
   ]);
   const t = await getTranslations("Dispatches");
 

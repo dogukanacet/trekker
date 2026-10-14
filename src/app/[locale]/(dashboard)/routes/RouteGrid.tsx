@@ -62,7 +62,14 @@ const RouteGrid = ({
     },
   ];
 
-  return <DataGrid<Route> rowData={routeList} columns={columns} pagination={pagination} />;
+  return (
+    <DataGrid<Route>
+      rowData={routeList}
+      columns={columns}
+      pagination={pagination}
+      exportOptions={{ resource: "routes", title: t("title") }}
+    />
+  );
 };
 
 export default RouteGrid;
