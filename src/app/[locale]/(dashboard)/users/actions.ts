@@ -60,9 +60,9 @@ export const createUser = async (
     }
   }
 
-  // Kullanıcı ilk girişte kendi şifresini invite linkinden belirleyecek —
-  // bu arada asla kullanılmayacak rastgele bir hash yazıyoruz (login denemesi hiçbir
-  // düz metinle eşleşmez, placeholder tamamen işlevsiz bir değer).
+  // The user will set their own password from the invite link on first login —
+  // until then, write a random hash that will never be used (no login attempt
+  // can match it as plaintext; the placeholder is completely unusable).
   const placeholderPasswordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
 
   const user = await prisma.user.create({

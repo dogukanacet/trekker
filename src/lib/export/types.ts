@@ -1,6 +1,6 @@
 import type { Role } from "@prisma/client";
 
-// Çok büyük tablolarda tarayıcı/sunucuyu yormamak için üst sınır.
+// Upper limit to avoid overloading the browser or server with very large tables.
 export const EXPORT_ROW_LIMIT = 5000;
 
 export type ExportParams = Record<string, string | undefined>;

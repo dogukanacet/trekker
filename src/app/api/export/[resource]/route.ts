@@ -6,7 +6,7 @@ import { exportRegistry } from "@/lib/export/registry";
 export async function GET(request: Request, { params }: { params: Promise<{ resource: string }> }) {
   const { resource } = await params;
 
-  // hasOwn: "constructor" gibi prototype anahtarlarının registry kaydı gibi çözülmesini engeller.
+  // hasOwn prevents prototype keys such as "constructor" from resolving as registry entries.
   const entry = Object.hasOwn(exportRegistry, resource) ? exportRegistry[resource] : undefined;
   if (!entry) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ reso
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  // Tenant her zaman session'dan geliyor, query'den hiç okunmuyor.
+  // The tenant always comes from the session and is never read from the query.
   const query = Object.fromEntries(new URL(request.url).searchParams);
   const rows = await entry.fetchRows(query, {
     tenantId: user.tenantId,

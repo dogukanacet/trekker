@@ -1,11 +1,11 @@
 "use client";
 
-import type { User, Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 import { useTranslations } from "next-intl";
 import { DataGrid, type GridColumn, type DataGridPagination } from "@/components/data-grid";
 import { UserActionsCell } from "@/app/[locale]/(dashboard)/users/UserActionsCell";
+import type { UserRow } from "@/app/[locale]/(dashboard)/users/query";
 
-type UserRow = Omit<User, "passwordHash"> & { driver: { id: string; fullName: string } | null };
 type DriverOption = { id: string; fullName: string; userId: string | null };
 
 const UserGrid = ({
@@ -45,6 +45,7 @@ const UserGrid = ({
       colId: "role",
       header: t("role"),
       value: (row) => row.role,
+      exportValue: (row) => roleLabels[row.role],
       filter: "multiselect",
       filterParams: {
         options: [
@@ -61,6 +62,7 @@ const UserGrid = ({
       colId: "linkedDriver",
       header: t("linkedDriver"),
       render: (row) => row.driver?.fullName ?? common("notAvailable"),
+      exportValue: (row) => row.driver?.fullName ?? common("notAvailable"),
     },
     {
       colId: "actions",
@@ -72,7 +74,14 @@ const UserGrid = ({
     },
   ];
 
-  return <DataGrid<UserRow> rowData={userList} columns={columns} pagination={pagination} />;
+  return (
+    <DataGrid<UserRow>
+      rowData={userList}
+      columns={columns}
+      pagination={pagination}
+      exportOptions={{ resource: "users", title: t("title") }}
+    />
+  );
 };
 
 export default UserGrid;

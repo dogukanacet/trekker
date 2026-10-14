@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
-// Next.js dev modunda hot-reload sırasında birden fazla PrismaClient
-// instance'ı oluşmasını önlemek için global singleton pattern.
+// Prevent multiple PrismaClient instances from being created during hot reload
+// in Next.js development mode by using a global singleton pattern.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient();

@@ -1,18 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { typography } from "@/lib/constants";
-import { buildPrismaWhereParams, type FilterFieldConfig } from "@/lib/build-prisma-where";
-import { buildOrderBy } from "@/lib/build-order-by";
 import { parsePagination } from "@/lib/pagination";
 import { AddUserDialog } from "@/app/[locale]/(dashboard)/users/AddUserDialog";
 import UserGrid from "@/app/[locale]/(dashboard)/users/UserGrid";
+import { buildUserWhere, getUserRows } from "@/app/[locale]/(dashboard)/users/query";
 import { getTranslations } from "next-intl/server";
-import type { Prisma } from "@prisma/client";
-
-const userFilters: FilterFieldConfig[] = [
-  { key: "q", field: "email", type: "text" },
-  { key: "role", field: "role", type: "in" },
-];
 
 const UsersPage = async ({
   searchParams,
@@ -29,34 +22,15 @@ const UsersPage = async ({
   const session = await auth();
   const tenantId = session?.user?.tenantId;
   const params = await searchParams;
-  const userSortKeys = ["email", "role"] as const;
 
   const { page, pageSize, skip, take } = parsePagination({
     page: params.page,
     pageSize: params.pageSize,
   });
 
-  const where: Prisma.UserWhereInput = {
-    tenantId,
-    ...buildPrismaWhereParams(params, userFilters),
-  };
-
   const [userList, totalCount, driverList] = await Promise.all([
-    prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        tenantId: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        driver: { select: { id: true, fullName: true } },
-      },
-      orderBy: buildOrderBy(userSortKeys, params.sortBy, params.sortOrder),
-      skip,
-      take,
-    }),
-    prisma.user.count({ where }),
+    getUserRows(params, tenantId, { skip, take }),
+    prisma.user.count({ where: buildUserWhere(params, tenantId) }),
     prisma.driver.findMany({
       where: { depot: { tenantId } },
       select: { id: true, fullName: true, userId: true },

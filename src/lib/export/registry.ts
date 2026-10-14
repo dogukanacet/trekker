@@ -4,6 +4,8 @@ import { getDriverRows } from "@/app/[locale]/(dashboard)/drivers/query";
 import { getDepotRows } from "@/app/[locale]/(dashboard)/depots/query";
 import { getVehicleRows } from "@/app/[locale]/(dashboard)/vehicles/query";
 import { getRouteRows } from "@/app/[locale]/(dashboard)/routes/query";
+import { getUserRows } from "@/app/[locale]/(dashboard)/users/query";
+import { getDispatchRows } from "@/app/[locale]/(dashboard)/dispatches/query";
 
 type ExportEntry = {
   permission: Resource;
@@ -28,5 +30,14 @@ export const exportRegistry: Record<string, ExportEntry> = {
   routes: {
     permission: "routes",
     fetchRows: (params, ctx) => getRouteRows(params, ctx.tenantId, exportPage),
+  },
+  users: {
+    permission: "users",
+    fetchRows: (params, ctx) => getUserRows(params, ctx.tenantId, exportPage),
+  },
+  dispatches: {
+    permission: "dispatches",
+    // Since ctx contains role/driverId, the DRIVER restriction is applied just as it is on the page.
+    fetchRows: (params, ctx) => getDispatchRows(params, ctx, exportPage),
   },
 };

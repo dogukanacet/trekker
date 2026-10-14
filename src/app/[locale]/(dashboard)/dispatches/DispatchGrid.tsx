@@ -109,6 +109,7 @@ const DispatchGrid = ({
       colId: "status",
       header: t("status"),
       value: (row) => row.status,
+      exportValue: (row) => statusOptions.find((o) => o.value === row.status)?.label,
       filter: "multiselect",
       filterParams: {
         options: statusOptions,
@@ -166,6 +167,7 @@ const DispatchGrid = ({
         renderDetail={(row) => <DispatchDetailPanel dispatchId={row.id} />}
         singleExpand
         pagination={pagination}
+        exportOptions={{ resource: "dispatches", title: t("title") }}
       />
 
       {editingRow && (

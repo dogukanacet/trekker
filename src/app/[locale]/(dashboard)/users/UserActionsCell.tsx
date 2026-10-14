@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import type { User, Role } from "@prisma/client";
+import type { Role } from "@prisma/client";
 import * as userActions from "@/app/[locale]/(dashboard)/users/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,8 +33,8 @@ import {
 import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import type { UserRow } from "@/app/[locale]/(dashboard)/users/query";
 
-type UserRow = Omit<User, "passwordHash"> & { driver: { id: string; fullName: string } | null };
 type DriverOption = { id: string; fullName: string; userId: string | null };
 
 export function UserActionsCell({

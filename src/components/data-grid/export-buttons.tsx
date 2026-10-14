@@ -25,7 +25,7 @@ export function ExportButtons<T>({
   const handleExport = async (format: ExportFormat) => {
     setActiveFormat(format);
     try {
-      // Filtre/sıralama URL'de zaten var; sadece sayfalamayı çıkarıyoruz.
+      // Filters and sorting are already in the URL; remove only pagination.
       const params = new URLSearchParams(searchParams.toString());
       params.delete("page");
       params.delete("pageSize");

@@ -3,7 +3,7 @@ import type { GridColumn } from "@/components/data-grid";
 export type ExportTable = { title: string; headers: string[]; rows: string[][] };
 
 const PDF_FONT_NAME = "DejaVuSans";
-// Prisma DateTime'ları JSON'dan ISO string olarak gelir (Date nesnesi değil).
+// Prisma DateTime values arrive from JSON as ISO strings, not Date objects.
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 
 function formatValue(value: string | number | Date | null | undefined, locale: string): string {
@@ -46,18 +46,18 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-// CSV injection: "=", "+", "-", "@" ile başlayan hücreler Excel'de formül olarak çalışabilir.
+// CSV injection: cells beginning with "=", "+", "-", or "@" can execute as formulas in Excel.
 function toCsvCell(value: string): string {
   const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
   return /[",;\r\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 }
 
 export function downloadCsv(table: ExportTable, resource: string, locale: string) {
-  // Türkçe Excel liste ayırıcı olarak ";" bekler, virgüllü CSV tek kolonda açılır.
+  // Turkish Excel expects ";" as the list separator; a comma-delimited CSV opens in a single column.
   const delimiter = locale === "tr" ? ";" : ",";
   const lines = [table.headers, ...table.rows].map((cells) => cells.map(toCsvCell).join(delimiter));
 
-  // BOM: Excel'in dosyayı UTF-8 olarak tanıyıp ş, ğ, İ gibi harfleri bozmamasını sağlar.
+  // BOM lets Excel recognize the file as UTF-8 and preserve characters such as ş, ğ, and İ.
   const content = "\uFEFF" + lines.join("\r\n");
   triggerDownload(
     new Blob([content], { type: "text/csv;charset=utf-8" }),
@@ -94,7 +94,7 @@ function loadFontBase64(): Promise<string> {
 }
 
 export async function downloadPdf(table: ExportTable, resource: string, subtitle: string) {
-  // Ağır kütüphaneler sadece PDF istendiğinde yüklensin.
+  // Load heavyweight libraries only when a PDF is requested.
   const [{ jsPDF }, { autoTable }, fontBase64] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
@@ -116,7 +116,7 @@ export async function downloadPdf(table: ExportTable, resource: string, subtitle
     startY: 27,
     head: [table.headers],
     body: table.rows,
-    // Sadece "normal" stilini yüklediğimiz için başlıkta da bold kullanmıyoruz.
+    // Only the "normal" style is loaded, so do not use bold in the heading.
     styles: { font: PDF_FONT_NAME, fontStyle: "normal", fontSize: 9 },
     headStyles: { font: PDF_FONT_NAME, fontStyle: "normal", fillColor: [79, 70, 229] },
   });
