@@ -145,7 +145,7 @@ const DispatchGrid = ({
             header: common("actions"),
             width: 110,
             render: (row: DispatchRow) => (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center justify-end gap-1">
                 <Button variant="ghost" size="icon" onClick={() => setEditingRow(row)}>
                   <Pencil className="h-4 w-4" />
                 </Button>
