@@ -13,7 +13,10 @@
     "prepare": "husky",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "mock:seed": "tsx --env-file=.env scripts/mock-data.ts",
+    "mock:clean": "tsx --env-file=.env scripts/mock-data.ts --clean",
+    "mock:reset": "tsx --env-file=.env scripts/mock-data.ts --reset"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -47,6 +50,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",
+    "@faker-js/faker": "^10.6.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^22.10.2",
@@ -60,7 +64,7 @@
     "prettier": "^3.4.2",
     "prisma": "^5.22.0",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.15",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },
