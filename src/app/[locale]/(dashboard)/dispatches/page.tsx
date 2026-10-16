@@ -34,6 +34,7 @@ const DispatchesPage = async ({
   const role = session?.user?.role;
   const scope = { tenantId, role, driverId: session?.user?.driverId };
   const canManage = hasPermission(role, "dispatches", "update");
+  const canChangeStatus = hasPermission(role, "dispatches", "changeStatus");
 
   const params = (await searchParams) as Record<string, string | undefined>;
 
@@ -80,6 +81,7 @@ const DispatchesPage = async ({
         dispatches={dispatchList}
         pagination={{ page, pageSize, totalCount }}
         canManage={canManage}
+        canChangeStatus={canChangeStatus}
       />
     </div>
   );
