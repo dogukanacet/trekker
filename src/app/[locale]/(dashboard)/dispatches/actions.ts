@@ -6,6 +6,7 @@ import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { DispatchStatus } from "@prisma/client";
 import { authorize } from "@/lib/authorize";
+import { NEXT_DISPATCH_STATUS } from "@/lib/dispatch-status";
 
 const dispatchCreateSchema = z.object({
   routeId: z.string().min(1, "Route ID is required"),
@@ -199,3 +200,49 @@ export async function getDispatchDetail(dispatchId: string) {
 
   return { error: null, dispatch, history };
 }
+
+export const advanceDispatchStatus = async (
+  dispatchId: string,
+  expectedStatus: DispatchStatus,
+  prevState: { error: string | null; success: boolean },
+) => {
+  const checkAuth = await authorize("dispatches", "changeStatus");
+  if (!checkAuth.ok) return { error: checkAuth.error, success: false };
+  const { t, tenantId, role, driverId } = checkAuth;
+
+  // The client only reports the status it saw; the target status is always derived on the server.
+  const parsedStatus = z.nativeEnum(DispatchStatus).safeParse(expectedStatus);
+  const nextStatus = parsedStatus.success ? NEXT_DISPATCH_STATUS[parsedStatus.data] : undefined;
+  if (!parsedStatus.success || !nextStatus) {
+    return { error: t("invalidStatusTransition"), success: false };
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    // Compare-and-swap: only updates if the dispatch still has the status the user saw,
+    // belongs to this tenant and (for drivers) to the driver themselves.
+    const result = await tx.dispatch.updateMany({
+      where: {
+        id: dispatchId,
+        status: parsedStatus.data,
+        vehicle: { depot: { tenantId } },
+        // An empty string never matches, so a driver without a linked Driver record updates nothing.
+        ...(role === "DRIVER" ? { driverId: driverId ?? "" } : {}),
+      },
+      data: { status: nextStatus },
+    });
+    if (result.count === 0) return false;
+
+    await tx.dispatchStatusHistory.create({ data: { dispatchId, status: nextStatus } });
+    return true;
+  });
+
+  if (!updated) {
+    return { error: t("dispatchStatusConflict"), success: false };
+  }
+
+  const locale = await getLocale();
+  revalidatePath(`/${locale}/dispatches`);
+  revalidatePath(`/${locale}`);
+
+  return { error: null, success: true };
+};

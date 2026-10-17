@@ -1,9 +1,9 @@
 import type { Role } from "@prisma/client";
 
 export type Resource = "depots" | "vehicles" | "drivers" | "routes" | "dispatches" | "users";
-export type Action = "read" | "create" | "update" | "delete";
+export type Action = "read" | "create" | "update" | "delete" | "changeStatus";
 
-const ALL: readonly Action[] = ["read", "create", "update", "delete"];
+const ALL: readonly Action[] = ["read", "create", "update", "delete", "changeStatus"];
 
 const permissions: Record<Role, Partial<Record<Resource, readonly Action[]>>> = {
   ADMIN: {
@@ -22,7 +22,7 @@ const permissions: Record<Role, Partial<Record<Resource, readonly Action[]>>> = 
     dispatches: ALL,
   },
   DRIVER: {
-    dispatches: ["read"],
+    dispatches: ["read", "changeStatus"],
   },
 };
 

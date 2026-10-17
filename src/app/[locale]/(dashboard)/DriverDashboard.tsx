@@ -7,6 +7,7 @@ import { dispatchStatusColors } from "@/lib/status-colors";
 import { ClipboardList, ShieldAlert } from "lucide-react";
 import type { DispatchStatus } from "@prisma/client";
 import type { RoleViewProps } from "@/lib/role-views";
+import { DispatchStatusButton } from "@/app/[locale]/(dashboard)/dispatches/DispatchStatusButton";
 
 const RENEWAL_WINDOW_DAYS = 30;
 
@@ -101,11 +102,14 @@ export async function DriverDashboard({ session }: RoleViewProps) {
                       <p className={typography.secondary}>{dispatch.vehicle?.plate}</p>
                     </div>
                   </div>
-                  <span
-                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${dispatchStatusColors[dispatch.status]}`}
-                  >
-                    {statusLabels[dispatch.status]}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${dispatchStatusColors[dispatch.status]}`}
+                    >
+                      {statusLabels[dispatch.status]}
+                    </span>
+                    <DispatchStatusButton dispatchId={dispatch.id} status={dispatch.status} />
+                  </div>
                 </li>
               ))}
             </ul>

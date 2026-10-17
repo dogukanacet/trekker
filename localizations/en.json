@@ -19,7 +19,8 @@
     "upcomingDispatchesTitle": "Your Upcoming Dispatches",
     "noUpcomingDispatches": "You have no upcoming dispatches.",
     "licenseExpiresIn": "Your license expires in {days} days.",
-    "viewAllDispatches": "View all dispatches"
+    "viewAllDispatches": "View all dispatches",
+    "noTodaysDispatches": "No dispatches scheduled for today."
   },
   "Sidebar": {
     "dashboard": "Dashboard",
@@ -154,7 +155,11 @@
     "deleteDescription": "This dispatch record will be permanently deleted. This action cannot be undone.",
     "statusHistory": "Status History",
     "loadingHistory": "Loading history...",
-    "noHistory": "No status history yet."
+    "noHistory": "No status history yet.",
+    "startAction": "Start",
+    "completeAction": "Complete",
+    "startedToast": "Dispatch started.",
+    "completedToast": "Dispatch completed."
   },
   "Depots": {
     "title": "Depots",
@@ -247,7 +252,9 @@
     "driverNotAvailable": "The selected driver is linked to another user or not found.",
     "userNotFound": "User not found.",
     "cannotDeleteSelf": "You cannot delete your own account.",
-    "driverRequiredForRole": "A driver record must be selected for a user with the driver role."
+    "driverRequiredForRole": "A driver record must be selected for a user with the driver role.",
+    "invalidStatusTransition": "This dispatch's status can't be changed this way.",
+    "dispatchStatusConflict": "Dispatch not found or its status has changed. Refresh the page and try again."
   },
   "NotFound": {
     "title": "Not found",
