@@ -19,7 +19,8 @@
     "upcomingDispatchesTitle": "Your Upcoming Dispatches",
     "noUpcomingDispatches": "You have no upcoming dispatches.",
     "licenseExpiresIn": "Your license expires in {days} days.",
-    "viewAllDispatches": "View all dispatches"
+    "viewAllDispatches": "View all dispatches",
+    "noTodaysDispatches": "No dispatches scheduled for today."
   },
   "Sidebar": {
     "dashboard": "Dashboard",

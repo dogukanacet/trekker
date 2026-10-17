@@ -19,7 +19,8 @@
     "upcomingDispatchesTitle": "Yaklaşan Sevkiyatların",
     "noUpcomingDispatches": "Yaklaşan bir sevkiyatın yok.",
     "licenseExpiresIn": "Ehliyetin {days} gün içinde doluyor.",
-    "viewAllDispatches": "Tüm sevkiyatları görüntüle"
+    "viewAllDispatches": "Tüm sevkiyatları görüntüle",
+    "noTodaysDispatches": "Bugün için planlanmış sevkiyat yok."
   },
   "Sidebar": {
     "dashboard": "Dashboard",

@@ -7,6 +7,7 @@ import { typography } from "@/lib/constants";
 import { RenewalRow } from "@/app/[locale]/(dashboard)/RenewalRow";
 import type { RoleViewProps } from "@/lib/role-views";
 import type { Vehicle, Driver } from "@prisma/client";
+import { TodaysDispatchesCard } from "@/app/[locale]/(dashboard)/TodaysDispatchesCard";
 
 const RENEWAL_WINDOW_DAYS = 30;
 
@@ -130,7 +131,7 @@ export async function AdminDashboard({ session }: RoleViewProps) {
           );
         })}
       </div>
-
+      <TodaysDispatchesCard tenantId={tenantId} />
       <Card>
         <CardHeader>
           <CardTitle className={typography.sectionTitle}>{t("upcomingRenewals")}</CardTitle>
