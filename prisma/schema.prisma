@@ -40,6 +40,8 @@ model User {
   refreshTokens         RefreshToken[]
   passwordResetTokens   PasswordResetToken[]
   driver                Driver?
+  isPlatformAdmin  Boolean  @default(false)
+  translationEdits Translation[]
 }
 
 model Depot {
@@ -136,4 +138,18 @@ model PasswordResetToken {
   createdAt       DateTime @default(now())
   expiresAt       DateTime
   isCancelled     Boolean  @default(false)
+}
+
+model Translation {
+  id             String   @id @default(cuid())
+  locale         String   // Top-level key in the messages JSON, e.g. "Common"
+  namespace      String   // Dot-separated path inside the namespace, e.g. "export.csv"
+  key            String
+  draftValue     String?
+  publishedValue String?
+  updatedById    String?
+  updatedBy      User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt      DateTime @updatedAt
+
+  @@unique([locale, namespace, key])
 }
