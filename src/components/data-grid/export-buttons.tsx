@@ -67,7 +67,7 @@ export function ExportButtons<T>({
           ) : (
             <Download className="h-4 w-4" />
           )}
-          {format.toUpperCase()}
+          {t(format === "csv" ? "exportCsv" : "exportPdf")}
         </Button>
       ))}
     </div>

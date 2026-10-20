@@ -11,12 +11,13 @@ import {
   ClipboardList,
   Warehouse,
   UserCog,
+  Languages,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
 import { hasPermission, type Resource } from "@/lib/permissions";
 
-export function Sidebar({ role }: { role?: Role }) {
+export function Sidebar({ role, isPlatformAdmin }: { role?: Role; isPlatformAdmin?: boolean }) {
   const pathname = usePathname();
   const t = useTranslations("Sidebar");
 
@@ -25,6 +26,7 @@ export function Sidebar({ role }: { role?: Role }) {
     label: string;
     icon: typeof LayoutDashboard;
     resource: Resource | null;
+    platformOnly?: boolean;
   }[] = [
     { href: "/", label: t("dashboard"), icon: LayoutDashboard, resource: null },
     { href: "/depots", label: t("depots"), icon: Warehouse, resource: "depots" },
@@ -33,11 +35,19 @@ export function Sidebar({ role }: { role?: Role }) {
     { href: "/routes", label: t("routes"), icon: RouteIcon, resource: "routes" },
     { href: "/dispatches", label: t("dispatches"), icon: ClipboardList, resource: "dispatches" },
     { href: "/users", label: t("users"), icon: UserCog, resource: "users" },
+    {
+      href: "/translations",
+      label: t("translations"),
+      icon: Languages,
+      resource: null,
+      platformOnly: true,
+    },
   ];
 
-  const visibleItems = navItems.filter(
-    (item) => item.resource === null || hasPermission(role, item.resource, "read"),
-  );
+  const visibleItems = navItems.filter((item) => {
+    if (item.platformOnly) return isPlatformAdmin === true;
+    return item.resource === null || hasPermission(role, item.resource, "read");
+  });
 
   return (
     <aside className="w-56 shrink-0 border-r bg-background flex flex-col">

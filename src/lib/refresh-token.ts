@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { JWT } from "next-auth/jwt";
 import { getRefreshTokenExpiryMs } from "./refresh-cookie";
 
 export function generateRefreshToken(): string {
