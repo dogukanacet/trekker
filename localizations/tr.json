@@ -29,7 +29,8 @@
     "routes": "Rotalar",
     "dispatches": "Sevkiyatlar",
     "depots": "Depolar",
-    "users": "Kullanıcılar"
+    "users": "Kullanıcılar",
+    "translations": "Çeviriler"
   },
   "Common": {
     "add": "Ekle",
@@ -269,5 +270,32 @@
   },
   "Topbar": {
     "logout": "Çıkış yap"
+  },
+  "Translations": {
+    "title": "Çeviriler",
+    "subtitle": "Metinleri düzenleyin, yeni build almadan yayınlayın",
+    "namespace": "Bölüm",
+    "key": "Anahtar",
+    "status": "Durum",
+    "statusDefault": "Varsayılan",
+    "statusPublished": "Özelleştirilmiş",
+    "statusDraft": "Taslak var",
+    "edit": "Çeviriyi düzenle",
+    "defaultValue": "Varsayılan",
+    "missingInLocale": "Bu anahtar bu dilin JSON dosyasında yok.",
+    "discardDraft": "Taslağı at",
+    "placeholderHint": "Süslü parantez içindeki yer tutucuları (ör. name) olduğu gibi koruyun.",
+    "draftSaved": "Taslak kaydedildi.",
+    "draftDiscarded": "Taslak silindi.",
+    "noChanges": "Değişiklik yok.",
+    "publish": "Yayınla",
+    "publishWithCount": "Yayınla ({count})",
+    "publishTitle": "Taslaklar yayınlansın mı?",
+    "publishDescription": "{count} taslak çeviri yayınlanacak. Değişiklik tüm kullanıcılar için hemen geçerli olur.",
+    "publishedCount": "{count} çeviri yayınlandı.",
+    "forbidden": "Bu işlem için yetkiniz yok.",
+    "invalidInput": "Geçersiz veri gönderildi.",
+    "unknownKey": "Bu çeviri anahtarı bulunamadı.",
+    "nothingToPublish": "Yayınlanacak taslak yok."
   }
 }

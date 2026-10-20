@@ -1,0 +1,55 @@
+import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { typography } from "@/lib/constants";
+import { parsePagination } from "@/lib/pagination";
+import { requirePlatformAdmin } from "@/lib/translations/guard";
+import { countDrafts, getTranslationRows } from "@/lib/translations/catalog";
+import { queryTranslationRows } from "@/lib/translations/query";
+import TranslationsGrid from "@/app/[locale]/(dashboard)/translations/TranslationsGrid";
+import { PublishButton } from "@/app/[locale]/(dashboard)/translations/PublishButton";
+
+const TranslationsPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    q?: string;
+    namespace?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    page?: string;
+    pageSize?: string;
+  }>;
+}) => {
+  // Middleware cannot check this flag (Edge, no DB), so the page enforces it itself
+  const admin = await requirePlatformAdmin();
+  if (!admin) notFound();
+
+  const params = await searchParams;
+  const { page, pageSize, skip, take } = parsePagination({
+    page: params.page,
+    pageSize: params.pageSize,
+  });
+
+  const [allRows, draftCount, t] = await Promise.all([
+    getTranslationRows(),
+    countDrafts(),
+    getTranslations("Translations"),
+  ]);
+
+  const { rows, totalCount } = queryTranslationRows(allRows, params, { skip, take });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className={typography.pageTitle}>{t("title")}</h1>
+          <p className={typography.secondary}>{t("subtitle")}</p>
+        </div>
+        <PublishButton draftCount={draftCount} />
+      </div>
+      <TranslationsGrid rows={rows} pagination={{ page, pageSize, totalCount }} />
+    </div>
+  );
+};
+
+export default TranslationsPage;

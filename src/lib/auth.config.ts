@@ -27,9 +27,9 @@ export const authConfig = {
       session.user.id = token.sub as string;
       session.user.tenantId = token.tenantId as string;
       session.user.role = token.role as Role;
-      session.user.driverId = token.driverId ?? null;
+      session.user.driverId = (token.driverId as string | null | undefined) ?? null;
       if (token.error) {
-        session.error = token.error;
+        session.error = token.error as string;
       }
       return session;
     },
