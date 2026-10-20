@@ -47,7 +47,7 @@ export function TranslationEditCell({ row }: { row: TranslationRow }) {
 
       for (const locale of routing.locales) {
         const cell = row.cells[locale];
-        if (!cell || cell.base === null) continue;
+        if (!cell || (cell.base === null && !row.isCustom)) continue;
 
         const next = values[locale] ?? "";
         if (next === effectiveValue(cell)) continue;
@@ -106,7 +106,7 @@ export function TranslationEditCell({ row }: { row: TranslationRow }) {
           <div className="space-y-4">
             {routing.locales.map((locale) => {
               const cell = row.cells[locale];
-              const isMissing = !cell || cell.base === null;
+              const isMissing = !cell || (cell.base === null && !row.isCustom);
               return (
                 <div key={locale} className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -127,9 +127,11 @@ export function TranslationEditCell({ row }: { row: TranslationRow }) {
                     <p className="text-sm text-muted-foreground">{t("missingInLocale")}</p>
                   ) : (
                     <>
-                      <p className="text-xs text-muted-foreground">
-                        {t("defaultValue")}: {cell.base}
-                      </p>
+                      {cell.base !== null && (
+                        <p className="text-xs text-muted-foreground">
+                          {t("defaultValue")}: {cell.base}
+                        </p>
+                      )}
                       <textarea
                         id={`tr-${row.id}-${locale}`}
                         value={values[locale] ?? ""}

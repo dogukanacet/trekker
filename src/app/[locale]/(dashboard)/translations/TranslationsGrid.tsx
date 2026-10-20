@@ -6,6 +6,8 @@ import { routing } from "@/i18n/routing";
 import type { TranslationRow } from "@/lib/translations/catalog";
 import { effectiveValue, getRowStatus, type RowStatus } from "@/lib/translations/cell";
 import { TranslationEditCell } from "@/app/[locale]/(dashboard)/translations/TranslationEditCell";
+import { InlineTranslationCell } from "@/app/[locale]/(dashboard)/translations/InlineTranslationCell";
+import { DeleteCustomKeyButton } from "@/app/[locale]/(dashboard)/translations/DeleteCustomKeyButton";
 
 const statusClasses: Record<RowStatus, string> = {
   default: "bg-muted text-muted-foreground",
@@ -29,22 +31,21 @@ const TranslationsGrid = ({
     draft: t("statusDraft"),
   };
 
+  const textFilterParams = {
+    placeholder: common("searchPlaceholder"),
+    applyLabel: common("apply"),
+    clearLabel: common("clear"),
+  };
+
   const localeColumns: GridColumn<TranslationRow>[] = routing.locales.map((locale) => ({
     colId: `locale-${locale}`,
     header: locale.toUpperCase(),
-    render: (row) => {
+    // Raw value makes the column sortable; the server sorts by the same text the cell shows
+    value: (row) => {
       const cell = row.cells[locale];
-      if (!cell) return common("notAvailable");
-      const text = effectiveValue(cell);
-      return (
-        <span
-          className={`block max-w-xs truncate ${cell.draft !== null ? "italic text-amber-700 dark:text-amber-400" : ""}`}
-          title={text}
-        >
-          {text || common("notAvailable")}
-        </span>
-      );
+      return cell ? effectiveValue(cell) : "";
     },
+    render: (row) => <InlineTranslationCell row={row} locale={locale} />,
   }));
 
   const columns: GridColumn<TranslationRow>[] = [
@@ -55,29 +56,41 @@ const TranslationsGrid = ({
       filter: "text",
       paramKey: "namespace",
       width: 150,
-      filterParams: {
-        placeholder: common("searchPlaceholder"),
-        applyLabel: common("apply"),
-        clearLabel: common("clear"),
-      },
+      filterParams: textFilterParams,
     },
     {
       colId: "key",
       header: t("key"),
       value: (row) => row.key,
       filter: "text",
-      paramKey: "q",
-      filterParams: {
-        placeholder: common("searchPlaceholder"),
-        applyLabel: common("apply"),
-        clearLabel: common("clear"),
-      },
+      paramKey: "key",
+      filterParams: textFilterParams,
+      render: (row) => (
+        <span className="flex items-center gap-2">
+          <span>{row.key}</span>
+          {row.isCustom && (
+            <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+              {t("customBadge")}
+            </span>
+          )}
+        </span>
+      ),
     },
     ...localeColumns,
     {
       colId: "status",
       header: t("status"),
       width: 150,
+      value: (row) => getRowStatus(row),
+      filter: "multiselect",
+      filterParams: {
+        options: (Object.keys(statusLabels) as RowStatus[]).map((status) => ({
+          value: status,
+          label: statusLabels[status],
+        })),
+        applyLabel: common("apply"),
+        clearLabel: common("clear"),
+      },
       render: (row) => {
         const status = getRowStatus(row);
         return (
@@ -90,8 +103,13 @@ const TranslationsGrid = ({
     {
       colId: "actions",
       header: common("actions"),
-      width: 90,
-      render: (row) => <TranslationEditCell row={row} />,
+      width: 120,
+      render: (row) => (
+        <div className="flex h-full items-center justify-end gap-1">
+          <TranslationEditCell row={row} />
+          {row.isCustom && <DeleteCustomKeyButton row={row} />}
+        </div>
+      ),
     },
   ];
 

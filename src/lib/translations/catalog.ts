@@ -14,6 +14,8 @@ export type TranslationRow = {
   key: string;
   cells: Record<string, TranslationCell>;
   hasDraft: boolean;
+  // True when no locale JSON contains the key: it was created from the panel
+  isCustom: boolean;
 };
 
 export async function loadBaseMessages(locale: string): Promise<Record<string, unknown>> {
@@ -29,8 +31,24 @@ export async function keyExistsInBase(
   return entries.some((e) => e.namespace === namespace && e.key === key);
 }
 
-// Builds the full catalog: every key found in any locale JSON, merged with DB overrides.
-// Orphan overrides (key no longer in JSON) are ignored.
+// True when at least one locale JSON contains the key
+export async function keyExistsInAnyBase(namespace: string, key: string): Promise<boolean> {
+  const results = await Promise.all(
+    routing.locales.map((locale) => keyExistsInBase(locale, namespace, key)),
+  );
+  return results.some(Boolean);
+}
+
+function emptyCells(): Record<string, TranslationCell> {
+  const cells: Record<string, TranslationCell> = {};
+  for (const locale of routing.locales) {
+    cells[locale] = { base: null, published: null, draft: null };
+  }
+  return cells;
+}
+
+// Builds the full catalog: every key found in any locale JSON plus custom keys
+// from the DB, merged with overrides.
 export async function getTranslationRows(): Promise<TranslationRow[]> {
   const locales = routing.locales;
 
@@ -58,10 +76,7 @@ export async function getTranslationRows(): Promise<TranslationRow[]> {
       const id = `${namespace}.${key}`;
       let row = rows.get(id);
       if (!row) {
-        row = { id, namespace, key, cells: {}, hasDraft: false };
-        for (const l of locales) {
-          row.cells[l] = { base: null, published: null, draft: null };
-        }
+        row = { id, namespace, key, cells: emptyCells(), hasDraft: false, isCustom: false };
         rows.set(id, row);
       }
       const cell = row.cells[locale];
@@ -70,9 +85,29 @@ export async function getTranslationRows(): Promise<TranslationRow[]> {
   }
 
   for (const o of overrides) {
-    const row = rows.get(`${o.namespace}.${o.key}`);
-    const cell = row?.cells[o.locale];
-    if (!row || !cell || cell.base === null) continue;
+    // Rows of a locale that is no longer configured are ignored
+    if (!(locales as readonly string[]).includes(o.locale)) continue;
+
+    const id = `${o.namespace}.${o.key}`;
+    let row = rows.get(id);
+    if (!row) {
+      // Not in any JSON file: a custom key created from the panel
+      row = {
+        id,
+        namespace: o.namespace,
+        key: o.key,
+        cells: emptyCells(),
+        hasDraft: false,
+        isCustom: true,
+      };
+      rows.set(id, row);
+    }
+
+    const cell = row.cells[o.locale];
+    if (!cell) continue;
+    // For JSON keys, a locale without the key cannot be overridden
+    if (!row.isCustom && cell.base === null) continue;
+
     cell.published = o.publishedValue;
     cell.draft = o.draftValue;
     if (o.draftValue !== null) row.hasDraft = true;

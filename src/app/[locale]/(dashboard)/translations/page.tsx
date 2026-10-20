@@ -7,13 +7,17 @@ import { countDrafts, getTranslationRows } from "@/lib/translations/catalog";
 import { queryTranslationRows } from "@/lib/translations/query";
 import TranslationsGrid from "@/app/[locale]/(dashboard)/translations/TranslationsGrid";
 import { PublishButton } from "@/app/[locale]/(dashboard)/translations/PublishButton";
+import { TranslationsSearch } from "@/app/[locale]/(dashboard)/translations/TranslationsSearch";
+import { AddTranslationDialog } from "@/app/[locale]/(dashboard)/translations/AddTranslationDialog";
 
 const TranslationsPage = async ({
   searchParams,
 }: {
   searchParams: Promise<{
-    q?: string;
+    search?: string;
+    key?: string;
     namespace?: string;
+    status?: string;
     sortBy?: string;
     sortOrder?: string;
     page?: string;
@@ -37,6 +41,7 @@ const TranslationsPage = async ({
   ]);
 
   const { rows, totalCount } = queryTranslationRows(allRows, params, { skip, take });
+  const namespaces = [...new Set(allRows.map((row) => row.namespace))].sort();
 
   return (
     <div className="space-y-6">
@@ -45,8 +50,12 @@ const TranslationsPage = async ({
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-        <PublishButton draftCount={draftCount} />
+        <div className="flex items-center gap-2">
+          <AddTranslationDialog namespaces={namespaces} />
+          <PublishButton draftCount={draftCount} />
+        </div>
       </div>
+      <TranslationsSearch />
       <TranslationsGrid rows={rows} pagination={{ page, pageSize, totalCount }} />
     </div>
   );
