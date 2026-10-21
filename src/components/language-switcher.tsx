@@ -1,8 +1,7 @@
 "use client";
 
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter, usePathname } from "@/i18n/navigation";
-import { routing } from "@/i18n/routing";
 import {
   Select,
   SelectContent,
@@ -11,9 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Globe } from "lucide-react";
-import { useTranslations } from "next-intl";
 
-export function LanguageSwitcher() {
+// `locales` must be the enabled languages, never the whole pool
+export function LanguageSwitcher({ locales }: { locales: readonly string[] }) {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
@@ -31,7 +30,7 @@ export function LanguageSwitcher() {
         <SelectValue>{(value: string) => value.toUpperCase()}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {routing.locales.map((option) => (
+        {locales.map((option) => (
           <SelectItem key={option} value={option}>
             {option.toUpperCase()}
           </SelectItem>

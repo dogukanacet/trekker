@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { routing } from "@/i18n/routing";
 import { flattenMessages } from "./flatten";
+import { loadBaseMessages } from "@/i18n/load-base";
+export { loadBaseMessages };
 
 export type TranslationCell = {
   base: string | null; // value from the bundled JSON, null if the key is missing in this locale
@@ -17,10 +19,6 @@ export type TranslationRow = {
   // True when no locale JSON contains the key: it was created from the panel
   isCustom: boolean;
 };
-
-export async function loadBaseMessages(locale: string): Promise<Record<string, unknown>> {
-  return (await import(`../../../localizations/${locale}.json`)).default as Record<string, unknown>;
-}
 
 export async function keyExistsInBase(
   locale: string,
@@ -105,8 +103,6 @@ export async function getTranslationRows(): Promise<TranslationRow[]> {
 
     const cell = row.cells[o.locale];
     if (!cell) continue;
-    // For JSON keys, a locale without the key cannot be overridden
-    if (!row.isCustom && cell.base === null) continue;
 
     cell.published = o.publishedValue;
     cell.draft = o.draftValue;

@@ -19,25 +19,33 @@ import type { TranslationRow } from "@/lib/translations/catalog";
 import { effectiveValue } from "@/lib/translations/cell";
 import * as translationActions from "@/app/[locale]/(dashboard)/translations/actions";
 
-function buildInitialValues(row: TranslationRow): Record<string, string> {
+function buildInitialValues(row: TranslationRow, locales: readonly string[]) {
   const values: Record<string, string> = {};
-  for (const locale of routing.locales) {
+  for (const locale of locales) {
     const cell = row.cells[locale];
     values[locale] = cell ? effectiveValue(cell) : "";
   }
   return values;
 }
 
-export function TranslationEditCell({ row }: { row: TranslationRow }) {
+export function TranslationEditCell({
+  row,
+  locales,
+}: {
+  row: TranslationRow;
+  locales: readonly string[];
+}) {
   const t = useTranslations("Translations");
   const common = useTranslations("Common");
   const [isOpen, setIsOpen] = useState(false);
-  const [values, setValues] = useState<Record<string, string>>(() => buildInitialValues(row));
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    buildInitialValues(row, locales),
+  );
   const [isPending, startTransition] = useTransition();
 
   const handleOpenChange = (open: boolean) => {
     // Re-initialise on every open so stale edits never survive a cancel
-    if (open) setValues(buildInitialValues(row));
+    if (open) setValues(buildInitialValues(row, locales));
     setIsOpen(open);
   };
 
@@ -45,9 +53,9 @@ export function TranslationEditCell({ row }: { row: TranslationRow }) {
     startTransition(async () => {
       let changed = 0;
 
-      for (const locale of routing.locales) {
+      for (const locale of locales) {
         const cell = row.cells[locale];
-        if (!cell || (cell.base === null && !row.isCustom)) continue;
+        if (!cell) continue;
 
         const next = values[locale] ?? "";
         if (next === effectiveValue(cell)) continue;
@@ -90,13 +98,15 @@ export function TranslationEditCell({ row }: { row: TranslationRow }) {
     });
   };
 
+  const defaultCell = row.cells[routing.defaultLocale];
+
   return (
     <div className="flex h-full items-center justify-end">
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogTrigger render={<Button variant="ghost" size="icon" />}>
           <Pencil className="h-4 w-4" />
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t("edit")}</DialogTitle>
           </DialogHeader>
@@ -104,14 +114,16 @@ export function TranslationEditCell({ row }: { row: TranslationRow }) {
           <p className="text-xs text-muted-foreground">{t("placeholderHint")}</p>
 
           <div className="space-y-4">
-            {routing.locales.map((locale) => {
+            {locales.map((locale) => {
               const cell = row.cells[locale];
-              const isMissing = !cell || (cell.base === null && !row.isCustom);
+              if (!cell) return null;
+              // Reference text: the locale's own default, or the default language's text
+              const reference = cell.base ?? (defaultCell ? effectiveValue(defaultCell) : "");
               return (
                 <div key={locale} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor={`tr-${row.id}-${locale}`}>{locale.toUpperCase()}</Label>
-                    {cell?.draft != null && (
+                    {cell.draft !== null && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -123,25 +135,17 @@ export function TranslationEditCell({ row }: { row: TranslationRow }) {
                       </Button>
                     )}
                   </div>
-                  {isMissing ? (
-                    <p className="text-sm text-muted-foreground">{t("missingInLocale")}</p>
-                  ) : (
-                    <>
-                      {cell.base !== null && (
-                        <p className="text-xs text-muted-foreground">
-                          {t("defaultValue")}: {cell.base}
-                        </p>
-                      )}
-                      <textarea
-                        id={`tr-${row.id}-${locale}`}
-                        value={values[locale] ?? ""}
-                        onChange={(e) =>
-                          setValues((prev) => ({ ...prev, [locale]: e.target.value }))
-                        }
-                        className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                      />
-                    </>
+                  {reference && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("defaultValue")}: {reference}
+                    </p>
                   )}
+                  <textarea
+                    id={`tr-${row.id}-${locale}`}
+                    value={values[locale] ?? ""}
+                    onChange={(e) => setValues((prev) => ({ ...prev, [locale]: e.target.value }))}
+                    className="min-h-20 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  />
                 </div>
               );
             })}

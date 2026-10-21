@@ -308,7 +308,6 @@
     "namespacePlaceholder": "e.g. Common",
     "keyPlaceholder": "e.g. export.csv",
     "required": "required",
-    "optionalFallback": "optional, the default language is shown when empty",
     "createKey": "Add key",
     "keyCreated": "The key was added as a draft. It takes effect once published.",
     "invalidNamespace": "The section name can only contain letters, digits, hyphens and underscores.",
@@ -320,6 +319,19 @@
     "deleteKeyTitle": "Delete this key?",
     "deleteKeyDescription": "This custom key and its translations in all languages will be permanently deleted. If the code uses this key, the text will disappear.",
     "keyDeleted": "Key deleted.",
-    "notCustomKey": "Only keys added from the panel can be deleted."
+    "notCustomKey": "Only keys added from the panel can be deleted.",
+    "languages": "Languages",
+    "languagesTitle": "Languages",
+    "languagesHint": "Enabled languages appear in the language switcher. A text without a translation shows its key name, so it is best to enable a language once it is sufficiently translated.",
+    "optionalFallback": "optional, the key name is shown in the app when empty",
+    "defaultLanguage": "Default",
+    "enableLanguage": "Enable",
+    "disableLanguage": "Disable",
+    "languageEnabled": "Enabled",
+    "languageDisabled": "Disabled",
+    "languageUpdated": "Language updated.",
+    "cannotDisableDefault": "The default language cannot be disabled.",
+    "invalidLanguage": "Invalid language.",
+    "translatedOf": "{translated} / {total} texts"
   }
 }

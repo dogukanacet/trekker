@@ -11,7 +11,6 @@ import { requirePlatformAdmin } from "@/lib/translations/guard";
 import {
   getTranslationRows,
   keyExistsInAnyBase,
-  keyExistsInBase,
   loadBaseMessages,
 } from "@/lib/translations/catalog";
 import {
@@ -20,6 +19,7 @@ import {
   isValidKeyPath,
   isValidNamespace,
 } from "@/lib/translations/key-rules";
+import { LANGUAGES_TAG } from "@/i18n/languages";
 
 type ActionResult = { error?: string; success?: boolean; count?: number };
 
@@ -44,6 +44,11 @@ const deleteKeySchema = z.object({
   key: z.string().min(1).max(200),
 });
 
+const languageSchema = z.object({
+  code: z.enum(routing.locales),
+  enabled: z.boolean(),
+});
+
 function revalidatePanel() {
   for (const locale of routing.locales) {
     revalidatePath(`/${locale}/translations`);
@@ -60,11 +65,9 @@ export async function saveDraft(input: unknown): Promise<ActionResult> {
   if (!parsed.success) return { error: t("invalidInput") };
   const { locale, namespace, key, value } = parsed.data;
 
-  // Allowed: a key present in this locale's JSON, or a custom key (in no JSON, but in the DB)
-  if (!(await keyExistsInBase(locale, namespace, key))) {
-    const isCustom =
-      !(await keyExistsInAnyBase(namespace, key)) &&
-      (await prisma.translation.count({ where: { namespace, key } })) > 0;
+  // Allowed: a key present in any locale's JSON, or a custom key (in no JSON, but in the DB)
+  if (!(await keyExistsInAnyBase(namespace, key))) {
+    const isCustom = (await prisma.translation.count({ where: { namespace, key } })) > 0;
     if (!isCustom) return { error: t("unknownKey") };
   }
 
@@ -215,4 +218,29 @@ export async function publishAll(): Promise<ActionResult> {
   revalidateTag(TRANSLATIONS_TAG);
   revalidatePanel();
   return { success: true, count };
+}
+
+export async function setLanguageEnabled(input: unknown): Promise<ActionResult> {
+  const t = await getTranslations("Translations");
+
+  const admin = await requirePlatformAdmin();
+  if (!admin) return { error: t("forbidden") };
+
+  const parsed = languageSchema.safeParse(input);
+  if (!parsed.success) return { error: t("invalidLanguage") };
+  const { code, enabled } = parsed.data;
+
+  if (code === routing.defaultLocale && !enabled) {
+    return { error: t("cannotDisableDefault") };
+  }
+
+  await prisma.language.upsert({
+    where: { code },
+    create: { code, enabled, updatedById: admin.userId },
+    update: { enabled, updatedById: admin.userId },
+  });
+
+  revalidateTag(LANGUAGES_TAG);
+  revalidatePanel();
+  return { success: true };
 }

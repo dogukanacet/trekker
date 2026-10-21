@@ -33,7 +33,7 @@ export function InlineTranslationCell({ row, locale }: { row: TranslationRow; lo
   }, [isEditing]);
 
   // Custom keys have no JSON value, but every locale cell of them is editable
-  if (!cell || (cell.base === null && !row.isCustom)) {
+  if (!cell) {
     return <span className="text-muted-foreground">{common("notAvailable")}</span>;
   }
 

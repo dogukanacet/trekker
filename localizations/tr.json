@@ -308,7 +308,6 @@
     "namespacePlaceholder": "Ör. Common",
     "keyPlaceholder": "Ör. export.csv",
     "required": "zorunlu",
-    "optionalFallback": "isteğe bağlı, boşsa varsayılan dil gösterilir",
     "createKey": "Anahtarı ekle",
     "keyCreated": "Anahtar taslak olarak eklendi. Yayınlayınca geçerli olur.",
     "invalidNamespace": "Bölüm adı yalnızca harf, rakam, tire ve alt çizgi içerebilir.",
@@ -320,6 +319,19 @@
     "deleteKeyTitle": "Anahtar silinsin mi?",
     "deleteKeyDescription": "Bu özel anahtar ve tüm dillerdeki çevirileri kalıcı olarak silinecek. Kod bu anahtarı kullanıyorsa metin görünmez olur.",
     "keyDeleted": "Anahtar silindi.",
-    "notCustomKey": "Yalnızca panelden eklenen anahtarlar silinebilir."
+    "notCustomKey": "Yalnızca panelden eklenen anahtarlar silinebilir.",
+    "languages": "Diller",
+    "languagesTitle": "Diller",
+    "languagesHint": "Etkin diller dil değiştiricide görünür. Çevirisi eksik metinlerde anahtar adı görünür, bu yüzden bir dili yeterli çeviriye ulaşınca etkinleştirmek iyi olur.",
+    "optionalFallback": "isteğe bağlı, boşsa uygulamada anahtar adı görünür",
+    "defaultLanguage": "Varsayılan",
+    "enableLanguage": "Etkinleştir",
+    "disableLanguage": "Kapat",
+    "languageEnabled": "Etkin",
+    "languageDisabled": "Kapalı",
+    "languageUpdated": "Dil güncellendi.",
+    "cannotDisableDefault": "Varsayılan dil kapatılamaz.",
+    "invalidLanguage": "Geçersiz dil.",
+    "translatedOf": "{translated} / {total} metin"
   }
 }

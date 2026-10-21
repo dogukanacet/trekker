@@ -18,7 +18,13 @@ import { Label } from "@/components/ui/label";
 import { routing } from "@/i18n/routing";
 import { createKey } from "@/app/[locale]/(dashboard)/translations/actions";
 
-export function AddTranslationDialog({ namespaces }: { namespaces: string[] }) {
+export function AddTranslationDialog({
+  namespaces,
+  locales,
+}: {
+  namespaces: string[];
+  locales: readonly string[];
+}) {
   const t = useTranslations("Translations");
   const [isOpen, setIsOpen] = useState(false);
   const [namespace, setNamespace] = useState("");
@@ -93,7 +99,7 @@ export function AddTranslationDialog({ namespaces }: { namespaces: string[] }) {
             />
           </div>
 
-          {routing.locales.map((locale) => (
+          {locales.map((locale) => (
             <div key={locale} className="space-y-2">
               <Label htmlFor={`new-value-${locale}`}>
                 {locale.toUpperCase()}{" "}
