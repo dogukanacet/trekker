@@ -7,8 +7,10 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { routing } from "@/i18n/routing";
 import { TRANSLATIONS_TAG } from "@/i18n/messages";
+import { LANGUAGES_TAG } from "@/i18n/languages";
 import { requirePlatformAdmin } from "@/lib/translations/guard";
 import {
+  createReferenceResolver,
   getTranslationRows,
   keyExistsInAnyBase,
   loadBaseMessages,
@@ -19,7 +21,7 @@ import {
   isValidKeyPath,
   isValidNamespace,
 } from "@/lib/translations/key-rules";
-import { LANGUAGES_TAG } from "@/i18n/languages";
+import { validateTranslation, type ValidationIssue } from "@/lib/translations/validate";
 
 type ActionResult = { error?: string; success?: boolean; count?: number };
 
@@ -55,6 +57,29 @@ function revalidatePanel() {
   }
 }
 
+// Placeholder names are shown the way they are written in a message: {name} and <b>
+function formatNames(names: string[]): string {
+  return names.map((name) => (name.startsWith("<") ? name : `{${name}}`)).join(", ");
+}
+
+// Returns a function that turns a validation issue into a user-facing message
+async function getIssueDescriber() {
+  const t = await getTranslations("Translations");
+
+  return (issue: ValidationIssue): string => {
+    if (issue.type === "syntax") return t("invalidSyntax");
+
+    const parts: string[] = [];
+    if (issue.missing.length > 0) {
+      parts.push(t("placeholdersMissing", { names: formatNames(issue.missing) }));
+    }
+    if (issue.extra.length > 0) {
+      parts.push(t("placeholdersExtra", { names: formatNames(issue.extra) }));
+    }
+    return parts.join(" ");
+  };
+}
+
 export async function saveDraft(input: unknown): Promise<ActionResult> {
   const t = await getTranslations("Translations");
 
@@ -69,6 +94,13 @@ export async function saveDraft(input: unknown): Promise<ActionResult> {
   if (!(await keyExistsInAnyBase(namespace, key))) {
     const isCustom = (await prisma.translation.count({ where: { namespace, key } })) > 0;
     if (!isCustom) return { error: t("unknownKey") };
+  }
+
+  const resolveReference = await createReferenceResolver();
+  const issue = validateTranslation(value, resolveReference(namespace, key, locale));
+  if (issue) {
+    const describeIssue = await getIssueDescriber();
+    return { error: describeIssue(issue) };
   }
 
   await prisma.translation.upsert({
@@ -112,7 +144,7 @@ export async function discardDraft(input: unknown): Promise<ActionResult> {
 }
 
 // Creates a new custom key as drafts. The default locale value is required;
-// other locales are optional and fall back to the default locale's text.
+// other locales are optional and show the key name until they are translated.
 export async function createKey(input: unknown): Promise<ActionResult> {
   const t = await getTranslations("Translations");
 
@@ -130,8 +162,17 @@ export async function createKey(input: unknown): Promise<ActionResult> {
     const value = values[locale] ?? "";
     return value.trim() === "" ? [] : [{ locale, value }];
   });
-  if (!entries.some((entry) => entry.locale === routing.defaultLocale)) {
+  const defaultEntry = entries.find((entry) => entry.locale === routing.defaultLocale);
+  if (!defaultEntry) {
     return { error: t("defaultLocaleRequired", { locale: routing.defaultLocale.toUpperCase() }) };
+  }
+
+  // The default text defines the placeholders; every other language has to match it
+  const describeIssue = await getIssueDescriber();
+  for (const entry of entries) {
+    const reference = entry.locale === routing.defaultLocale ? null : defaultEntry.value;
+    const issue = validateTranslation(entry.value, reference);
+    if (issue) return { error: `${entry.locale.toUpperCase()}: ${describeIssue(issue)}` };
   }
 
   // Conflicts with known keys (JSON and custom)
@@ -203,6 +244,29 @@ export async function publishAll(): Promise<ActionResult> {
 
   const admin = await requirePlatformAdmin();
   if (!admin) return { error: t("forbidden") };
+
+  // Re-validate every draft: the reference text may have changed (e.g. a deploy
+  // edited the JSON) since the draft was saved
+  const drafts = await prisma.translation.findMany({
+    where: { draftValue: { not: null } },
+    select: { locale: true, namespace: true, key: true, draftValue: true },
+  });
+  const resolveReference = await createReferenceResolver();
+  const invalid = drafts.filter(
+    (draft) =>
+      draft.draftValue !== null &&
+      validateTranslation(
+        draft.draftValue,
+        resolveReference(draft.namespace, draft.key, draft.locale),
+      ) !== null,
+  );
+  if (invalid.length > 0) {
+    const examples = invalid
+      .slice(0, 3)
+      .map((draft) => `${draft.locale.toUpperCase()} ${draft.namespace}.${draft.key}`)
+      .join(", ");
+    return { error: t("publishBlocked", { count: invalid.length, keys: examples }) };
+  }
 
   const count = await prisma.$executeRaw`
     UPDATE "Translation"

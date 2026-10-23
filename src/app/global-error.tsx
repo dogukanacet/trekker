@@ -2,8 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
-import en from "../../localizations/en.json";
-import tr from "../../localizations/tr.json";
+import { useTranslations } from "next-intl";
 
 export default function GlobalError({
   error,
@@ -12,8 +11,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const messages =
-    typeof document !== "undefined" && document.documentElement.lang === "en" ? en : tr;
+  const t = useTranslations("ErrorPage");
 
   return (
     <html lang="tr">
@@ -21,10 +19,10 @@ export default function GlobalError({
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
           <AlertTriangle className="h-10 w-10 text-destructive" />
           <div>
-            <h1 className="text-lg font-semibold">{messages.ErrorPage.title}</h1>
-            <p className="text-sm text-muted-foreground mt-1">{messages.ErrorPage.description}</p>
+            <h1 className="text-lg font-semibold">{t("title")}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{t("description")}</p>
           </div>
-          <Button onClick={reset}>{messages.ErrorPage.retry}</Button>
+          <Button onClick={reset}>{t("retry")}</Button>
         </div>
       </body>
     </html>

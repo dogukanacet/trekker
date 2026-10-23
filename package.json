@@ -16,10 +16,12 @@
     "seed": "tsx prisma/seed.ts",
     "mock:seed": "tsx --env-file=.env scripts/mock-data.ts",
     "mock:clean": "tsx --env-file=.env scripts/mock-data.ts --clean",
-    "mock:reset": "tsx --env-file=.env scripts/mock-data.ts --reset"
+    "mock:reset": "tsx --env-file=.env scripts/mock-data.ts --reset",
+    "i18n:merge": "tsx scripts/merge-localizations.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@formatjs/icu-messageformat-parser": "^3.5.22",
     "@prisma/client": "^5.22.0",
     "@sentry/nextjs": "^10.71.0",
     "@tailwindcss/postcss": "^4.3.3",

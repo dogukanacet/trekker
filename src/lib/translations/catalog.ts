@@ -115,3 +115,38 @@ export async function getTranslationRows(): Promise<TranslationRow[]> {
 export async function countDrafts(): Promise<number> {
   return prisma.translation.count({ where: { draftValue: { not: null } } });
 }
+
+// Builds a lookup that answers: "which text defines the placeholders of this key?"
+// JSON keys: the default locale's JSON text (what the code passes arguments for),
+// falling back to any other locale's JSON. Custom keys: the default locale's own
+// text, except for the default locale itself, which defines the placeholders.
+export async function createReferenceResolver() {
+  const defaultLocale = routing.defaultLocale;
+  const ordered = [defaultLocale, ...routing.locales.filter((code) => code !== defaultLocale)];
+
+  const fromJson = new Map<string, string>();
+  for (const code of ordered) {
+    for (const entry of flattenMessages(await loadBaseMessages(code))) {
+      const id = `${entry.namespace}.${entry.key}`;
+      if (!fromJson.has(id)) fromJson.set(id, entry.value);
+    }
+  }
+
+  const defaultRows = await prisma.translation.findMany({
+    where: { locale: defaultLocale },
+    select: { namespace: true, key: true, draftValue: true, publishedValue: true },
+  });
+  const customDefaults = new Map<string, string>();
+  for (const row of defaultRows) {
+    const text = row.draftValue ?? row.publishedValue;
+    if (text !== null) customDefaults.set(`${row.namespace}.${row.key}`, text);
+  }
+
+  return (namespace: string, key: string, locale: string): string | null => {
+    const id = `${namespace}.${key}`;
+    const jsonText = fromJson.get(id);
+    if (jsonText !== undefined) return jsonText;
+    if (locale === defaultLocale) return null;
+    return customDefaults.get(id) ?? null;
+  };
+}
