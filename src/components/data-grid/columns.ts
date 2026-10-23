@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { ColDef } from "ag-grid-community";
 import type { FilterType } from "./filter-registry";
 import type { GridFilterSyncConfig } from "./use-grid-query-sync";
+import { isTextEntryTarget } from "./keyboard";
 
 export type GridColumn<T> = {
   colId: string;
@@ -35,6 +36,7 @@ export function buildColumnDefs<T>(columns: GridColumn<T>[]): ColDef<T>[] {
       sortable: isSortable,
       filter: col.filter ?? false,
       filterParams: col.filterParams,
+      suppressKeyboardEvent: (params) => isTextEntryTarget(params.event.target),
     };
 
     // Sorting is cosmetic only: the actual order comes from the server (Prisma orderBy),
