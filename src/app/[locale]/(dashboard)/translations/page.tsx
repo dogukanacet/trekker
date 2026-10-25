@@ -13,6 +13,8 @@ import { routing } from "@/i18n/routing";
 import { getEnabledLocales } from "@/i18n/languages";
 import { getLanguageStats } from "@/lib/translations/language-stats";
 import { LanguagesDialog } from "@/app/[locale]/(dashboard)/translations/LanguagesDialog";
+import { getRecentReleases } from "@/lib/translations/releases";
+import { ReleaseHistoryDialog } from "@/app/[locale]/(dashboard)/translations/ReleaseHistoryDialog";
 
 const TranslationsPage = async ({
   searchParams,
@@ -37,13 +39,13 @@ const TranslationsPage = async ({
     pageSize: params.pageSize,
   });
 
-  const [allRows, draftCount, enabledLocales, t] = await Promise.all([
+  const [allRows, draftCount, enabledLocales, releases, t] = await Promise.all([
     getTranslationRows(),
     countDrafts(),
     getEnabledLocales(),
+    getRecentReleases(),
     getTranslations("Translations"),
   ]);
-
   const { rows, totalCount } = queryTranslationRows(
     allRows,
     params,
@@ -68,6 +70,7 @@ const TranslationsPage = async ({
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
+          <ReleaseHistoryDialog releases={releases} />
           <LanguagesDialog languages={languageStats} />
           <AddTranslationDialog namespaces={namespaces} locales={enabledLocales} />
           <PublishButton draftCount={draftCount} />

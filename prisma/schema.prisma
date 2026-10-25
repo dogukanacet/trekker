@@ -20,6 +20,11 @@ enum DispatchStatus {
  CANCELLED
 }
 
+enum ReleaseKind {
+  PUBLISH
+  REVERT
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   name      String
@@ -40,8 +45,9 @@ model User {
   refreshTokens         RefreshToken[]
   passwordResetTokens   PasswordResetToken[]
   driver                Driver?
-  isPlatformAdmin  Boolean  @default(false)
-  translationEdits Translation[]
+  isPlatformAdmin       Boolean  @default(false)
+  translationEdits      Translation[]
+  translationReleases   TranslationRelease[]
 }
 
 model Depot {
@@ -159,4 +165,29 @@ model Language {
   enabled     Boolean
   updatedById String?
   updatedAt   DateTime @updatedAt
+}
+
+model TranslationRelease {
+  id               String                   @id @default(cuid())
+  kind             ReleaseKind              @default(PUBLISH)
+  revertsReleaseId String?   // Set when kind is REVERT: the release that was undone
+  createdById      String?
+  createdBy        User?                    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime                 @default(now())
+  items            TranslationReleaseItem[]
+
+  @@index([createdAt])
+}
+
+model TranslationReleaseItem {
+  id            String             @id @default(cuid())
+  releaseId     String
+  release       TranslationRelease @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  locale        String
+  namespace     String
+  key           String
+  previousValue String?  // null = there was no published override before (the default text applied)
+  newValue      String?  // null = the override was removed by this release
+
+  @@index([releaseId])
 }

@@ -22,8 +22,10 @@ import {
   isValidNamespace,
 } from "@/lib/translations/key-rules";
 import { validateTranslation, type ValidationIssue } from "@/lib/translations/validate";
+import { planRevert } from "@/lib/translations/revert-plan";
+import type { ReleaseItemView } from "@/lib/translations/releases";
 
-type ActionResult = { error?: string; success?: boolean; count?: number };
+type ActionResult = { error?: string; success?: boolean; count?: number; skipped?: number };
 
 const keySchema = z.object({
   locale: z.enum(routing.locales),
@@ -50,6 +52,9 @@ const languageSchema = z.object({
   code: z.enum(routing.locales),
   enabled: z.boolean(),
 });
+
+const releaseIdSchema = z.object({ releaseId: z.string().min(1).max(50) });
+const RELEASE_ITEM_LIMIT = 200;
 
 function revalidatePanel() {
   for (const locale of routing.locales) {
@@ -238,7 +243,16 @@ export async function deleteCustomKey(input: unknown): Promise<ActionResult> {
   return { success: true };
 }
 
-// Bulk publish: every draft becomes the published value in one atomic statement
+type PublishedRow = {
+  locale: string;
+  namespace: string;
+  key: string;
+  previousValue: string | null;
+  newValue: string;
+};
+
+// Bulk publish: every draft becomes the published value, and the release record
+// with the previous values is written in the same transaction
 export async function publishAll(): Promise<ActionResult> {
   const t = await getTranslations("Translations");
 
@@ -268,14 +282,50 @@ export async function publishAll(): Promise<ActionResult> {
     return { error: t("publishBlocked", { count: invalid.length, keys: examples }) };
   }
 
-  const count = await prisma.$executeRaw`
-    UPDATE "Translation"
-    SET "publishedValue" = "draftValue",
-        "draftValue" = NULL,
-        "updatedById" = ${admin.userId},
-        "updatedAt" = NOW()
-    WHERE "draftValue" IS NOT NULL
-  `;
+  const count = await prisma.$transaction(
+    async (tx) => {
+      // One statement: lock the draft rows, keep their previous published value,
+      // move draft -> published, and return what changed
+      const changed = await tx.$queryRaw<PublishedRow[]>`
+        WITH drafts AS (
+          SELECT "id", "publishedValue" AS "previousValue"
+          FROM "Translation"
+          WHERE "draftValue" IS NOT NULL
+          FOR UPDATE
+        )
+        UPDATE "Translation" AS t
+        SET "publishedValue" = t."draftValue",
+            "draftValue" = NULL,
+            "updatedById" = ${admin.userId},
+            "updatedAt" = NOW()
+        FROM drafts
+        WHERE t."id" = drafts."id"
+        RETURNING t."locale" AS "locale",
+                  t."namespace" AS "namespace",
+                  t."key" AS "key",
+                  drafts."previousValue" AS "previousValue",
+                  t."publishedValue" AS "newValue"
+      `;
+      if (changed.length === 0) return 0;
+
+      const release = await tx.translationRelease.create({
+        data: { kind: "PUBLISH", createdById: admin.userId },
+        select: { id: true },
+      });
+      await tx.translationReleaseItem.createMany({
+        data: changed.map((row) => ({
+          releaseId: release.id,
+          locale: row.locale,
+          namespace: row.namespace,
+          key: row.key,
+          previousValue: row.previousValue,
+          newValue: row.newValue,
+        })),
+      });
+      return changed.length;
+    },
+    { timeout: 30_000 },
+  );
 
   if (count === 0) return { error: t("nothingToPublish") };
 
@@ -307,4 +357,138 @@ export async function setLanguageEnabled(input: unknown): Promise<ActionResult> 
   revalidateTag(LANGUAGES_TAG);
   revalidatePanel();
   return { success: true };
+}
+
+// Undoes one release. Texts that changed after it are skipped (see planRevert).
+// The undo itself is recorded as a new release, so the history stays append-only.
+export async function revertRelease(input: unknown): Promise<ActionResult> {
+  const t = await getTranslations("Translations");
+
+  const admin = await requirePlatformAdmin();
+  if (!admin) return { error: t("forbidden") };
+
+  const parsed = releaseIdSchema.safeParse(input);
+  if (!parsed.success) return { error: t("invalidInput") };
+  const { releaseId } = parsed.data;
+
+  const outcome = await prisma.$transaction(
+    async (tx) => {
+      const release = await tx.translationRelease.findUnique({
+        where: { id: releaseId },
+        select: {
+          items: {
+            select: {
+              locale: true,
+              namespace: true,
+              key: true,
+              previousValue: true,
+              newValue: true,
+            },
+          },
+        },
+      });
+      if (!release) return { status: "notFound" as const };
+
+      // A superset of the affected rows is fine: the plan matches them exactly
+      const rows = await tx.translation.findMany({
+        where: {
+          locale: { in: [...new Set(release.items.map((item) => item.locale))] },
+          namespace: { in: [...new Set(release.items.map((item) => item.namespace))] },
+        },
+        select: {
+          locale: true,
+          namespace: true,
+          key: true,
+          publishedValue: true,
+          draftValue: true,
+        },
+      });
+
+      const plan = planRevert(release.items, rows);
+      if (plan.operations.length === 0) return { status: "nothing" as const };
+
+      for (const operation of plan.operations) {
+        const { locale, namespace, key } = operation.item;
+        const where = { locale_namespace_key: { locale, namespace, key } };
+
+        if (operation.type === "delete") {
+          await tx.translation.delete({ where });
+        } else if (operation.type === "update") {
+          await tx.translation.update({
+            where,
+            data: { publishedValue: operation.target, updatedById: admin.userId },
+          });
+        } else {
+          await tx.translation.create({
+            data: {
+              locale,
+              namespace,
+              key,
+              publishedValue: operation.target,
+              updatedById: admin.userId,
+            },
+          });
+        }
+      }
+
+      const revert = await tx.translationRelease.create({
+        data: { kind: "REVERT", revertsReleaseId: releaseId, createdById: admin.userId },
+        select: { id: true },
+      });
+      await tx.translationReleaseItem.createMany({
+        data: plan.operations.map((operation) => ({
+          releaseId: revert.id,
+          locale: operation.item.locale,
+          namespace: operation.item.namespace,
+          key: operation.item.key,
+          previousValue: operation.current,
+          newValue: operation.target,
+        })),
+      });
+
+      return {
+        status: "done" as const,
+        reverted: plan.operations.length,
+        skipped: plan.skipped,
+      };
+    },
+    { timeout: 30_000 },
+  );
+
+  if (outcome.status === "notFound") return { error: t("releaseNotFound") };
+  if (outcome.status === "nothing") return { error: t("nothingToRevert") };
+
+  revalidateTag(TRANSLATIONS_TAG);
+  revalidatePanel();
+  return { success: true, count: outcome.reverted, skipped: outcome.skipped };
+}
+
+// Loaded lazily when a release is expanded in the history dialog
+export async function getReleaseItems(
+  releaseId: string,
+): Promise<{ error?: string; items?: ReleaseItemView[]; truncated?: boolean }> {
+  const t = await getTranslations("Translations");
+
+  const admin = await requirePlatformAdmin();
+  if (!admin) return { error: t("forbidden") };
+
+  const parsed = releaseIdSchema.safeParse({ releaseId });
+  if (!parsed.success) return { error: t("invalidInput") };
+
+  const rows = await prisma.translationReleaseItem.findMany({
+    where: { releaseId: parsed.data.releaseId },
+    orderBy: [{ namespace: "asc" }, { key: "asc" }, { locale: "asc" }],
+    take: RELEASE_ITEM_LIMIT + 1,
+  });
+
+  return {
+    items: rows.slice(0, RELEASE_ITEM_LIMIT).map((row) => ({
+      id: row.id,
+      locale: row.locale,
+      path: `${row.namespace}.${row.key}`,
+      previousValue: row.previousValue,
+      newValue: row.newValue,
+    })),
+    truncated: rows.length > RELEASE_ITEM_LIMIT,
+  };
 }
