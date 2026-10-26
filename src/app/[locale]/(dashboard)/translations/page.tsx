@@ -15,6 +15,11 @@ import { getLanguageStats } from "@/lib/translations/language-stats";
 import { LanguagesDialog } from "@/app/[locale]/(dashboard)/translations/LanguagesDialog";
 import { getRecentReleases } from "@/lib/translations/releases";
 import { ReleaseHistoryDialog } from "@/app/[locale]/(dashboard)/translations/ReleaseHistoryDialog";
+import { BulkTranslateDialog } from "@/app/[locale]/(dashboard)/translations/BulkTranslateDialog";
+import { ImportExportDialog } from "@/app/[locale]/(dashboard)/translations/ImportExportDialog";
+import { ProviderSettingsDialog } from "@/app/[locale]/(dashboard)/translations/ProviderSettingsDialog";
+
+export const maxDuration = 60;
 
 const TranslationsPage = async ({
   searchParams,
@@ -64,13 +69,16 @@ const TranslationsPage = async ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className={typography.pageTitle}>{t("title")}</h1>
           <p className={typography.secondary}>{t("subtitle")}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <ReleaseHistoryDialog releases={releases} />
+          <ImportExportDialog enabledLocales={enabledLocales} />
+          <ProviderSettingsDialog />
+          <BulkTranslateDialog enabledLocales={enabledLocales} />
           <LanguagesDialog languages={languageStats} />
           <AddTranslationDialog namespaces={namespaces} locales={enabledLocales} />
           <PublishButton draftCount={draftCount} />

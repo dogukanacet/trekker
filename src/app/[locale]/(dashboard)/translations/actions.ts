@@ -21,9 +21,10 @@ import {
   isValidKeyPath,
   isValidNamespace,
 } from "@/lib/translations/key-rules";
-import { validateTranslation, type ValidationIssue } from "@/lib/translations/validate";
+import { validateTranslation } from "@/lib/translations/validate";
 import { planRevert } from "@/lib/translations/revert-plan";
 import type { ReleaseItemView } from "@/lib/translations/releases";
+import { getIssueDescriber } from "@/lib/translations/describe-issue";
 
 type ActionResult = { error?: string; success?: boolean; count?: number; skipped?: number };
 
@@ -60,29 +61,6 @@ function revalidatePanel() {
   for (const locale of routing.locales) {
     revalidatePath(`/${locale}/translations`);
   }
-}
-
-// Placeholder names are shown the way they are written in a message: {name} and <b>
-function formatNames(names: string[]): string {
-  return names.map((name) => (name.startsWith("<") ? name : `{${name}}`)).join(", ");
-}
-
-// Returns a function that turns a validation issue into a user-facing message
-async function getIssueDescriber() {
-  const t = await getTranslations("Translations");
-
-  return (issue: ValidationIssue): string => {
-    if (issue.type === "syntax") return t("invalidSyntax");
-
-    const parts: string[] = [];
-    if (issue.missing.length > 0) {
-      parts.push(t("placeholdersMissing", { names: formatNames(issue.missing) }));
-    }
-    if (issue.extra.length > 0) {
-      parts.push(t("placeholdersExtra", { names: formatNames(issue.extra) }));
-    }
-    return parts.join(" ");
-  };
 }
 
 export async function saveDraft(input: unknown): Promise<ActionResult> {

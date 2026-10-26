@@ -18,6 +18,8 @@ import { routing } from "@/i18n/routing";
 import type { TranslationRow } from "@/lib/translations/catalog";
 import { effectiveValue } from "@/lib/translations/cell";
 import * as translationActions from "@/app/[locale]/(dashboard)/translations/actions";
+import { TranslateButton } from "@/app/[locale]/(dashboard)/translations/TranslateButton";
+import { useTranslateFrom } from "@/app/[locale]/(dashboard)/translations/use-translate-from";
 
 function buildInitialValues(row: TranslationRow, locales: readonly string[]) {
   const values: Record<string, string> = {};
@@ -42,6 +44,7 @@ export function TranslationEditCell({
     buildInitialValues(row, locales),
   );
   const [isPending, startTransition] = useTransition();
+  const { translateFrom, translatingFrom } = useTranslateFrom(locales, values, setValues);
 
   const handleOpenChange = (open: boolean) => {
     // Re-initialise on every open so stale edits never survive a cancel
@@ -67,7 +70,7 @@ export function TranslationEditCell({
           value: next,
         });
         if (result.error) {
-          toast.error(result.error);
+          toast.error(`${locale.toUpperCase()}: ${result.error}`);
           return;
         }
         changed++;
@@ -99,6 +102,7 @@ export function TranslationEditCell({
   };
 
   const defaultCell = row.cells[routing.defaultLocale];
+  const isBusy = isPending || translatingFrom !== null;
 
   return (
     <div className="flex h-full items-center justify-end">
@@ -121,19 +125,26 @@ export function TranslationEditCell({
               const reference = cell.base ?? (defaultCell ? effectiveValue(defaultCell) : "");
               return (
                 <div key={locale} className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <Label htmlFor={`tr-${row.id}-${locale}`}>{locale.toUpperCase()}</Label>
-                    {cell.draft !== null && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={isPending}
-                        onClick={() => handleDiscard(locale)}
-                      >
-                        {t("discardDraft")}
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <TranslateButton
+                        onClick={() => translateFrom(locale)}
+                        disabled={isBusy || locales.length < 2}
+                        loading={translatingFrom === locale}
+                      />
+                      {cell.draft !== null && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={isBusy}
+                          onClick={() => handleDiscard(locale)}
+                        >
+                          {t("discardDraft")}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {reference && (
                     <p className="text-xs text-muted-foreground">
@@ -152,7 +163,7 @@ export function TranslationEditCell({
           </div>
 
           <DialogFooter>
-            <Button type="button" onClick={handleSave} disabled={isPending}>
+            <Button type="button" onClick={handleSave} disabled={isBusy}>
               {isPending ? common("updating") : common("save")}
             </Button>
           </DialogFooter>
