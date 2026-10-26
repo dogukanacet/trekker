@@ -1,40 +1,28 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { routing } from "./routing";
+import { loadBaseMessages } from "./load-base";
 import { addCustomKeys, applyOverrides } from "./apply-overrides";
 
 export const TRANSLATIONS_TAG = "translations";
 
-// Cached per locale (arguments are part of the cache key) until the tag is revalidated
+// Cached per locale (arguments are part of the cache key) until the tag is revalidated.
+// A locale only ever sees its own texts: a missing text surfaces as its key,
+// never as another language's text, so gaps are easy to spot.
 export const getMergedMessages = unstable_cache(
   async (locale: string) => {
-    const base = (await import(`../../localizations/${locale}.json`)).default as Record<
-      string,
-      unknown
-    >;
-
-    // The default locale is loaded too: custom keys fall back to its text
-    const locales = locale === routing.defaultLocale ? [locale] : [locale, routing.defaultLocale];
     const rows = await prisma.translation.findMany({
-      where: { locale: { in: locales }, publishedValue: { not: null } },
-      select: { locale: true, namespace: true, key: true, publishedValue: true },
+      where: { locale, publishedValue: { not: null } },
+      select: { namespace: true, key: true, publishedValue: true },
     });
 
-    const own = rows.filter((row) => row.locale === locale);
-    const merged = applyOverrides(base, own);
+    const customEntries = rows.flatMap((row) =>
+      row.publishedValue === null
+        ? []
+        : [{ namespace: row.namespace, key: row.key, value: row.publishedValue }],
+    );
 
-    // Default-locale rows go in first so this locale's own rows win
-    const custom = new Map<string, { namespace: string; key: string; value: string }>();
-    for (const row of [...rows.filter((r) => r.locale !== locale), ...own]) {
-      if (row.publishedValue === null) continue;
-      custom.set(`${row.namespace}.${row.key}`, {
-        namespace: row.namespace,
-        key: row.key,
-        value: row.publishedValue,
-      });
-    }
-
-    return addCustomKeys(merged, [...custom.values()]);
+    const base = await loadBaseMessages(locale);
+    return addCustomKeys(applyOverrides(base, rows), customEntries);
   },
   ["merged-messages"],
   { tags: [TRANSLATIONS_TAG] },

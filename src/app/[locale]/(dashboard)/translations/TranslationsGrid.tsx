@@ -2,7 +2,6 @@
 
 import { useTranslations } from "next-intl";
 import { DataGrid, type GridColumn, type DataGridPagination } from "@/components/data-grid";
-import { routing } from "@/i18n/routing";
 import type { TranslationRow } from "@/lib/translations/catalog";
 import { effectiveValue, getRowStatus, type RowStatus } from "@/lib/translations/cell";
 import { TranslationEditCell } from "@/app/[locale]/(dashboard)/translations/TranslationEditCell";
@@ -17,9 +16,11 @@ const statusClasses: Record<RowStatus, string> = {
 
 const TranslationsGrid = ({
   rows,
+  locales,
   pagination,
 }: {
   rows: TranslationRow[];
+  locales: readonly string[];
   pagination: DataGridPagination;
 }) => {
   const t = useTranslations("Translations");
@@ -37,7 +38,7 @@ const TranslationsGrid = ({
     clearLabel: common("clear"),
   };
 
-  const localeColumns: GridColumn<TranslationRow>[] = routing.locales.map((locale) => ({
+  const localeColumns: GridColumn<TranslationRow>[] = locales.map((locale) => ({
     colId: `locale-${locale}`,
     header: locale.toUpperCase(),
     // Raw value makes the column sortable; the server sorts by the same text the cell shows
@@ -106,7 +107,7 @@ const TranslationsGrid = ({
       width: 120,
       render: (row) => (
         <div className="flex h-full items-center justify-end gap-1">
-          <TranslationEditCell row={row} />
+          <TranslationEditCell row={row} locales={locales} />
           {row.isCustom && <DeleteCustomKeyButton row={row} />}
         </div>
       ),

@@ -17,8 +17,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { routing } from "@/i18n/routing";
 import { createKey } from "@/app/[locale]/(dashboard)/translations/actions";
+import { TranslateButton } from "@/app/[locale]/(dashboard)/translations/TranslateButton";
+import { useTranslateFrom } from "@/app/[locale]/(dashboard)/translations/use-translate-from";
 
-export function AddTranslationDialog({ namespaces }: { namespaces: string[] }) {
+export function AddTranslationDialog({
+  namespaces,
+  locales,
+}: {
+  namespaces: string[];
+  locales: readonly string[];
+}) {
   const t = useTranslations("Translations");
   const [isOpen, setIsOpen] = useState(false);
   const [namespace, setNamespace] = useState("");
@@ -26,6 +34,7 @@ export function AddTranslationDialog({ namespaces }: { namespaces: string[] }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { translateFrom, translatingFrom } = useTranslateFrom(locales, values, setValues);
 
   const handleOpenChange = (open: boolean) => {
     // Start from a clean form every time the dialog opens
@@ -51,6 +60,8 @@ export function AddTranslationDialog({ namespaces }: { namespaces: string[] }) {
       setIsOpen(false);
     });
   };
+
+  const isBusy = isPending || translatingFrom !== null;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -93,14 +104,21 @@ export function AddTranslationDialog({ namespaces }: { namespaces: string[] }) {
             />
           </div>
 
-          {routing.locales.map((locale) => (
+          {locales.map((locale) => (
             <div key={locale} className="space-y-2">
-              <Label htmlFor={`new-value-${locale}`}>
-                {locale.toUpperCase()}{" "}
-                <span className="font-normal text-muted-foreground">
-                  ({locale === routing.defaultLocale ? t("required") : t("optionalFallback")})
-                </span>
-              </Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor={`new-value-${locale}`}>
+                  {locale.toUpperCase()}{" "}
+                  <span className="font-normal text-muted-foreground">
+                    ({locale === routing.defaultLocale ? t("required") : t("optionalFallback")})
+                  </span>
+                </Label>
+                <TranslateButton
+                  onClick={() => translateFrom(locale)}
+                  disabled={isBusy || locales.length < 2}
+                  loading={translatingFrom === locale}
+                />
+              </div>
               <textarea
                 id={`new-value-${locale}`}
                 value={values[locale] ?? ""}
@@ -113,7 +131,7 @@ export function AddTranslationDialog({ namespaces }: { namespaces: string[] }) {
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <DialogFooter>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isBusy}>
               {t("createKey")}
             </Button>
           </DialogFooter>
