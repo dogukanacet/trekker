@@ -25,6 +25,16 @@ enum ReleaseKind {
   REVERT
 }
 
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  STATUS_CHANGE
+  ROLE_CHANGE
+  INVITE
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   name      String
@@ -32,6 +42,7 @@ model Tenant {
 
   depots Depot[]
   users  User[]
+  auditLogs AuditLog[]
 }
 
 model User {
@@ -48,6 +59,7 @@ model User {
   isPlatformAdmin       Boolean  @default(false)
   translationEdits      Translation[]
   translationReleases   TranslationRelease[]
+  auditLogs AuditLog[]
 }
 
 model Depot {
@@ -190,4 +202,22 @@ model TranslationReleaseItem {
   newValue      String?  // null = the override was removed by this release
 
   @@index([releaseId])
+}
+
+model AuditLog {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  actorId       String?   // Nullable so the log survives deleting the user; actorEmail keeps who it was.
+  actor         User?       @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorEmail    String
+  action        AuditAction
+  resource      String      // Matches the Resource type in permissions.ts, e.g. "vehicles"
+  resourceId    String
+  resourceLabel String?     // Human-readable copy (plate, name) so deleted records stay readable
+  changes       Json?       // { field: { from, to } }
+  createdAt     DateTime    @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, resource, resourceId])
 }

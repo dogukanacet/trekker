@@ -20,6 +20,7 @@ export async function authorize(resource: Resource, action: Action) {
     t,
     tenantId,
     userId: session.user.id,
+    email: session.user.email ?? "",
     role: session.user.role,
     driverId: session.user.driverId,
   };
