@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { authorize } from "@/lib/authorize";
+import { diffRecords } from "@/lib/audit/diff";
+import { writeAudit } from "@/lib/audit/write";
+import { Prisma } from "@prisma/client";
 
 const driverSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
@@ -12,13 +15,17 @@ const driverSchema = z.object({
   licenseUntil: z.coerce.date(),
 });
 
+function driverSnapshot(d: { fullName: string; licenseUntil: Date }, depotName: string) {
+  return { depot: depotName, fullName: d.fullName, licenseUntil: d.licenseUntil };
+}
+
 export const createDriver = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
   const checkAuth = await authorize("drivers", "create");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const fullName = data.get("fullName") as string;
@@ -40,12 +47,24 @@ export const createDriver = async (
     return { error: t("depotNotFound"), success: false };
   }
 
-  await prisma.driver.create({
-    data: {
-      depotId: validationResult.data.depotId,
-      fullName: validationResult.data.fullName,
-      licenseUntil: validationResult.data.licenseUntil,
-    },
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.driver.create({
+      data: {
+        depotId: validationResult.data.depotId,
+        fullName: validationResult.data.fullName,
+        licenseUntil: validationResult.data.licenseUntil,
+      },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "CREATE",
+      resource: "drivers",
+      resourceId: created.id,
+      resourceLabel: created.fullName,
+      changes: diffRecords({}, driverSnapshot(created, depot.name)),
+    });
   });
 
   const locale = await getLocale();
@@ -61,7 +80,7 @@ export const updateDriver = async (
 ) => {
   const checkAuth = await authorize("drivers", "update");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const fullName = data.get("fullName") as string;
@@ -83,13 +102,37 @@ export const updateDriver = async (
     return { error: t("depotNotFound"), success: false };
   }
 
-  await prisma.driver.update({
-    where: { id: driverId },
-    data: {
-      depotId: validationResult.data.depotId,
-      fullName: validationResult.data.fullName,
-      licenseUntil: validationResult.data.licenseUntil,
-    },
+  // Tenant-scoped read: also closes the IDOR where any driver id could be updated.
+  const before = await prisma.driver.findFirst({
+    where: { id: driverId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
+  });
+  if (!before) {
+    return { error: t("driverNotFound"), success: false };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const after = await tx.driver.update({
+      where: { id: driverId },
+      data: {
+        depotId: validationResult.data.depotId,
+        fullName: validationResult.data.fullName,
+        licenseUntil: validationResult.data.licenseUntil,
+      },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "UPDATE",
+      resource: "drivers",
+      resourceId: driverId,
+      resourceLabel: after.fullName,
+      changes: diffRecords(
+        driverSnapshot(before, before.depot.name),
+        driverSnapshot(after, depot.name),
+      ),
+    });
   });
 
   const locale = await getLocale();
@@ -104,22 +147,34 @@ export const deleteDriver = async (
 ) => {
   const checkAuth = await authorize("drivers", "delete");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
+
+  const before = await prisma.driver.findFirst({
+    where: { id: driverId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
+  });
+  if (!before) {
+    return { error: t("driverNotFound"), success: false };
+  }
 
   try {
-    const result = await prisma.driver.deleteMany({
-      where: { id: driverId, depot: { tenantId } },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.driver.delete({ where: { id: driverId } });
 
-    if (result.count === 0) {
-      return { error: t("driverNotFound"), success: false };
-    }
+      await writeAudit(tx, {
+        tenantId,
+        actor: { id: userId, email },
+        action: "DELETE",
+        resource: "drivers",
+        resourceId: driverId,
+        resourceLabel: before.fullName,
+        changes: diffRecords(driverSnapshot(before, before.depot.name), {}),
+      });
+    });
   } catch (err) {
-    if (err instanceof Error && err.message.includes("foreign key constraint")) {
-      return {
-        error: t("driverRelation"),
-        success: false,
-      };
+    // P2003 = foreign key violation (the driver still has dispatches).
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+      return { error: t("driverRelation"), success: false };
     }
     throw err;
   }

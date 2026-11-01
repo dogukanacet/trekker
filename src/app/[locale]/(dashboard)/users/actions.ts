@@ -10,6 +10,8 @@ import { resend } from "@/lib/resend";
 import { generateResetToken, RESET_TOKEN_EXPIRE_MS } from "@/lib/reset-token";
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
+import { diffRecords } from "@/lib/audit/diff";
+import { writeAudit } from "@/lib/audit/write";
 
 const userCreateSchema = z.object({
   email: z.string().email(),
@@ -28,7 +30,7 @@ export const createUser = async (
 ) => {
   const authz = await authorize("users", "create");
   if (!authz.ok) return { error: authz.error, success: false };
-  const { t, tenantId } = authz;
+  const { t, tenantId, userId: actorId, email: actorEmail } = authz;
 
   const email = data.get("email") as string;
   const role = data.get("role") as string;
@@ -51,6 +53,7 @@ export const createUser = async (
     return { error: t("emailInUse"), success: false };
   }
 
+  let driverName: string | null = null;
   if (validationResult.data.driverId) {
     const driver = await prisma.driver.findFirst({
       where: { id: validationResult.data.driverId, depot: { tenantId }, userId: null },
@@ -58,6 +61,7 @@ export const createUser = async (
     if (!driver) {
       return { error: t("driverNotAvailable"), success: false };
     }
+    driverName = driver.fullName;
   }
 
   // The user will set their own password from the invite link on first login —
@@ -65,16 +69,31 @@ export const createUser = async (
   // can match it as plaintext; the placeholder is completely unusable).
   const placeholderPasswordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 10);
 
-  const user = await prisma.user.create({
-    data: {
-      email: validationResult.data.email,
-      passwordHash: placeholderPasswordHash,
-      role: validationResult.data.role,
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        email: validationResult.data.email,
+        passwordHash: placeholderPasswordHash,
+        role: validationResult.data.role,
+        tenantId,
+        ...(validationResult.data.driverId
+          ? { driver: { connect: { id: validationResult.data.driverId } } }
+          : {}),
+      },
+    });
+
+    await writeAudit(tx, {
       tenantId,
-      ...(validationResult.data.driverId
-        ? { driver: { connect: { id: validationResult.data.driverId } } }
-        : {}),
-    },
+      actor: { id: actorId, email: actorEmail },
+      action: "INVITE",
+      resource: "users",
+      resourceId: created.id,
+      resourceLabel: created.email,
+      // Explicit fields only: the password hash never goes anywhere near the log.
+      changes: diffRecords({}, { email: created.email, role: created.role, driver: driverName }),
+    });
+
+    return created;
   });
 
   const { token, tokenHash } = generateResetToken();
@@ -111,7 +130,7 @@ export const updateUser = async (
 ) => {
   const authz = await authorize("users", "update");
   if (!authz.ok) return { error: authz.error, success: false };
-  const { t, tenantId } = authz;
+  const { t, tenantId, userId: actorId, email: actorEmail } = authz;
 
   const role = data.get("role") as string;
   const driverId = (data.get("driverId") as string) || undefined;
@@ -126,11 +145,15 @@ export const updateUser = async (
     return { error: t("driverRequiredForRole"), success: false };
   }
 
-  const targetUser = await prisma.user.findFirst({ where: { id: userId, tenantId } });
+  const targetUser = await prisma.user.findFirst({
+    where: { id: userId, tenantId },
+    include: { driver: { select: { fullName: true } } },
+  });
   if (!targetUser) {
     return { error: t("userNotFound"), success: false };
   }
 
+  let newDriverName: string | null = null;
   if (validationResult.data.driverId) {
     const driver = await prisma.driver.findFirst({
       where: {
@@ -142,30 +165,41 @@ export const updateUser = async (
     if (!driver) {
       return { error: t("driverNotAvailable"), success: false };
     }
+    newDriverName = driver.fullName;
   }
 
   const roleChanged = targetUser.role !== validationResult.data.role;
 
-  await prisma.$transaction([
-    prisma.user.update({ where: { id: userId }, data: { role: validationResult.data.role } }),
-    prisma.driver.updateMany({ where: { userId, depot: { tenantId } }, data: { userId: null } }),
-    ...(validationResult.data.driverId
-      ? [
-          prisma.driver.update({
-            where: { id: validationResult.data.driverId },
-            data: { userId },
-          }),
-        ]
-      : []),
-    ...(roleChanged
-      ? [
-          prisma.refreshToken.updateMany({
-            where: { userId, isCancelled: false },
-            data: { isCancelled: true },
-          }),
-        ]
-      : []),
-  ]);
+  const changes = diffRecords(
+    { role: targetUser.role, driver: targetUser.driver?.fullName ?? null },
+    { role: validationResult.data.role, driver: newDriverName },
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: { role: validationResult.data.role } });
+    await tx.driver.updateMany({ where: { userId, depot: { tenantId } }, data: { userId: null } });
+
+    if (validationResult.data.driverId) {
+      await tx.driver.update({ where: { id: validationResult.data.driverId }, data: { userId } });
+    }
+
+    if (roleChanged) {
+      await tx.refreshToken.updateMany({
+        where: { userId, isCancelled: false },
+        data: { isCancelled: true },
+      });
+    }
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: actorId, email: actorEmail },
+      action: roleChanged ? "ROLE_CHANGE" : "UPDATE",
+      resource: "users",
+      resourceId: userId,
+      resourceLabel: targetUser.email,
+      changes,
+    });
+  });
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/users`);
@@ -179,16 +213,30 @@ export const deleteUser = async (
 ) => {
   const authz = await authorize("users", "delete");
   if (!authz.ok) return { error: authz.error, success: false };
-  const { t, tenantId, userId: currentUserId } = authz;
+  const { t, tenantId, userId: actorId, email: actorEmail } = authz;
 
-  if (currentUserId === userId) {
+  if (actorId === userId) {
     return { error: t("cannotDeleteSelf"), success: false };
   }
 
-  const result = await prisma.user.deleteMany({ where: { id: userId, tenantId } });
-  if (result.count === 0) {
+  const target = await prisma.user.findFirst({ where: { id: userId, tenantId } });
+  if (!target) {
     return { error: t("userNotFound"), success: false };
   }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.user.delete({ where: { id: userId } });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: actorId, email: actorEmail },
+      action: "DELETE",
+      resource: "users",
+      resourceId: userId,
+      resourceLabel: target.email,
+      changes: diffRecords({ email: target.email, role: target.role }, {}),
+    });
+  });
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/users`);

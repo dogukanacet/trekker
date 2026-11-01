@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { authorize } from "@/lib/authorize";
+import { writeAudit } from "@/lib/audit/write";
 
 const stopSchema = z.object({
   routeId: z.string().min(1, "routeId ID is required"),
@@ -20,7 +21,7 @@ export const addStop = async (
 ) => {
   const checkAuth = await authorize("routes", "create");
   if (!checkAuth.ok) return { error: checkAuth.error };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const label = data.get("label") as string;
   const lat = data.get("lat") as string;
@@ -34,7 +35,7 @@ export const addStop = async (
 
   const route = await prisma.route.findFirst({
     where: { id: routeId, depot: { tenantId } },
-    select: { id: true },
+    select: { id: true, name: true },
   });
 
   if (!route) {
@@ -43,15 +44,29 @@ export const addStop = async (
 
   const stopCount = await prisma.routeStop.count({ where: { routeId } });
 
-  await prisma.routeStop.create({
-    data: {
-      routeId: validationResult.data.routeId,
-      label: validationResult.data.label,
-      lat: validationResult.data.lat,
-      lng: validationResult.data.lng,
-      order: stopCount + 1,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.routeStop.create({
+      data: {
+        routeId: validationResult.data.routeId,
+        label: validationResult.data.label,
+        lat: validationResult.data.lat,
+        lng: validationResult.data.lng,
+        order: stopCount + 1,
+      },
+    });
+
+    // Stops are not their own audit resource: they show up as an update of the route.
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "UPDATE",
+      resource: "routes",
+      resourceId: routeId,
+      resourceLabel: route.name,
+      changes: { stop: { from: null, to: validationResult.data.label } },
+    });
   });
+
   const locale = await getLocale();
   revalidatePath(`/${locale}/routes/${routeId}`);
 
@@ -65,11 +80,30 @@ export const deleteStop = async (
 ) => {
   const checkAuth = await authorize("routes", "delete");
   if (!checkAuth.ok) return { error: checkAuth.error };
-  const { tenantId } = checkAuth;
+  const { tenantId, userId, email } = checkAuth;
 
-  await prisma.routeStop.deleteMany({
-    where: { id: stopId, route: { depot: { tenantId } } },
+  const stop = await prisma.routeStop.findFirst({
+    where: { id: stopId, routeId, route: { depot: { tenantId } } },
+    include: { route: { select: { name: true } } },
   });
+
+  // Nothing to delete (or not this tenant's): keep the previous silent no-op behavior.
+  if (!stop) return { error: null };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.routeStop.delete({ where: { id: stopId } });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "UPDATE",
+      resource: "routes",
+      resourceId: routeId,
+      resourceLabel: stop.route.name,
+      changes: { stop: { from: stop.label, to: null } },
+    });
+  });
+
   const locale = await getLocale();
   revalidatePath(`/${locale}/routes/${routeId}`);
 

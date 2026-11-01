@@ -18,15 +18,17 @@ const vehicleSchema = z.object({
 });
 
 // Only the fields worth showing in the audit log (no ids of children, no createdAt).
-function vehicleSnapshot(v: {
-  depotId: string;
-  plate: string;
-  model: string | null;
-  insuranceUntil: Date | null;
-  inspectionUntil: Date | null;
-}) {
+function vehicleSnapshot(
+  v: {
+    plate: string;
+    model: string | null;
+    insuranceUntil: Date | null;
+    inspectionUntil: Date | null;
+  },
+  depotName: string,
+) {
   return {
-    depotId: v.depotId,
+    depot: depotName,
     plate: v.plate,
     model: v.model,
     insuranceUntil: v.insuranceUntil,
@@ -90,7 +92,7 @@ export const createVehicle = async (
       resource: "vehicles",
       resourceId: created.id,
       resourceLabel: created.plate,
-      changes: diffRecords({}, vehicleSnapshot(created)),
+      changes: diffRecords({}, vehicleSnapshot(created, depot.name)),
     });
   });
 
@@ -142,6 +144,7 @@ export const updateVehicle = async (
   // Tenant-scoped read: also closes the IDOR where any vehicle id could be updated.
   const before = await prisma.vehicle.findFirst({
     where: { id: vehicleId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
   });
 
   if (!before) {
@@ -167,7 +170,10 @@ export const updateVehicle = async (
       resource: "vehicles",
       resourceId: vehicleId,
       resourceLabel: after.plate,
-      changes: diffRecords(vehicleSnapshot(before), vehicleSnapshot(after)),
+      changes: diffRecords(
+        vehicleSnapshot(before, before.depot.name),
+        vehicleSnapshot(after, depot.name),
+      ),
     });
   });
 
@@ -188,6 +194,7 @@ export const deleteVehicle = async (
   // Read first: the log needs the plate and last known values after the row is gone.
   const before = await prisma.vehicle.findFirst({
     where: { id: vehicleId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
   });
 
   if (!before) {
@@ -205,7 +212,7 @@ export const deleteVehicle = async (
         resource: "vehicles",
         resourceId: vehicleId,
         resourceLabel: before.plate,
-        changes: diffRecords(vehicleSnapshot(before), {}),
+        changes: diffRecords(vehicleSnapshot(before, before.depot.name), {}),
       });
     });
   } catch (err) {
