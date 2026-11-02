@@ -12,6 +12,7 @@ import {
   Warehouse,
   UserCog,
   Languages,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@prisma/client";
@@ -35,6 +36,7 @@ export function Sidebar({ role, isPlatformAdmin }: { role?: Role; isPlatformAdmi
     { href: "/routes", label: t("routes"), icon: RouteIcon, resource: "routes" },
     { href: "/dispatches", label: t("dispatches"), icon: ClipboardList, resource: "dispatches" },
     { href: "/users", label: t("users"), icon: UserCog, resource: "users" },
+    { href: "/audit-log", label: t("auditLog"), icon: ScrollText, resource: "auditLog" },
     {
       href: "/translations",
       label: t("translations"),
