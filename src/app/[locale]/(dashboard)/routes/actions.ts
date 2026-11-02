@@ -5,6 +5,9 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { authorize } from "@/lib/authorize";
+import { diffRecords } from "@/lib/audit/diff";
+import { writeAudit } from "@/lib/audit/write";
+import { Prisma } from "@prisma/client";
 
 const routeSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
@@ -18,13 +21,17 @@ const stopSchema = z.object({
   lng: z.coerce.number().min(1, "Lng is required"),
 });
 
+function routeSnapshot(r: { name: string }, depotName: string) {
+  return { depot: depotName, name: r.name };
+}
+
 export const createRoute = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
   const checkAuth = await authorize("routes", "create");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const name = data.get("name") as string;
@@ -43,11 +50,23 @@ export const createRoute = async (
     return { error: t("depotNotFound"), success: false };
   }
 
-  await prisma.route.create({
-    data: {
-      depotId: validationResult.data.depotId,
-      name: validationResult.data.name,
-    },
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.route.create({
+      data: {
+        depotId: validationResult.data.depotId,
+        name: validationResult.data.name,
+      },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "CREATE",
+      resource: "routes",
+      resourceId: created.id,
+      resourceLabel: created.name,
+      changes: diffRecords({}, routeSnapshot(created, depot.name)),
+    });
   });
   const locale = await getLocale();
   revalidatePath(`/${locale}/routes`);
@@ -62,7 +81,7 @@ export const updateRoute = async (
 ) => {
   const checkAuth = await authorize("routes", "update");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const name = data.get("name") as string;
@@ -85,13 +104,38 @@ export const updateRoute = async (
     return { error: t("depotNotFound"), success: false };
   }
 
-  await prisma.route.update({
-    where: { id: routeId },
-    data: {
-      depotId: validationResult.data.depotId,
-      name: validationResult.data.name,
-    },
+  // Tenant-scoped read: also closes the IDOR where any route id could be updated.
+  const before = await prisma.route.findFirst({
+    where: { id: routeId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
   });
+  if (!before) {
+    return { error: t("routeNotFound"), success: false };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const after = await tx.route.update({
+      where: { id: routeId },
+      data: {
+        depotId: validationResult.data.depotId,
+        name: validationResult.data.name,
+      },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "UPDATE",
+      resource: "routes",
+      resourceId: routeId,
+      resourceLabel: after.name,
+      changes: diffRecords(
+        routeSnapshot(before, before.depot.name),
+        routeSnapshot(after, depot.name),
+      ),
+    });
+  });
+
   const locale = await getLocale();
   revalidatePath(`/${locale}/routes`);
 
@@ -104,22 +148,34 @@ export const deleteRoute = async (
 ) => {
   const checkAuth = await authorize("routes", "delete");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
+
+  const before = await prisma.route.findFirst({
+    where: { id: routeId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
+  });
+  if (!before) {
+    return { error: t("routeNotFound"), success: false };
+  }
 
   try {
-    const result = await prisma.route.deleteMany({
-      where: { id: routeId, depot: { tenantId } },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.route.delete({ where: { id: routeId } });
 
-    if (result.count === 0) {
-      return { error: t("routeNotFound"), success: false };
-    }
+      await writeAudit(tx, {
+        tenantId,
+        actor: { id: userId, email },
+        action: "DELETE",
+        resource: "routes",
+        resourceId: routeId,
+        resourceLabel: before.name,
+        changes: diffRecords(routeSnapshot(before, before.depot.name), {}),
+      });
+    });
   } catch (err) {
-    if (err instanceof Error && err.message.includes("foreign key constraint")) {
-      return {
-        error: t("routeRelation"),
-        success: false,
-      };
+    // P2003 = foreign key violation (the route still has dispatches).
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+      return { error: t("routeRelation"), success: false };
     }
     throw err;
   }
@@ -128,62 +184,4 @@ export const deleteRoute = async (
   revalidatePath(`/${locale}/routes`);
 
   return { error: null, success: true };
-};
-
-export const addStop = async (routeId: string, data: FormData) => {
-  const checkAuth = await authorize("routes", "create");
-  if (!checkAuth.ok) return { error: checkAuth.error };
-  const { t, tenantId } = checkAuth;
-
-  const label = data.get("label") as string;
-  const lat = data.get("lat") as string;
-  const lng = data.get("lng") as string;
-  const validationResult = stopSchema.safeParse({
-    routeId,
-    label,
-    lat,
-    lng,
-  });
-
-  if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
-    return { error: t("validationFailed", { message: errorMessages }) };
-  }
-
-  const route = await prisma.route.findFirst({
-    where: { id: validationResult.data.routeId, depot: { tenantId } },
-    select: { id: true },
-  });
-
-  if (!route) {
-    return { error: t("routeNotFound") };
-  }
-
-  const stopCount = await prisma.routeStop.count({
-    where: { routeId: validationResult.data.routeId },
-  });
-
-  await prisma.routeStop.create({
-    data: {
-      routeId: validationResult.data.routeId,
-      label: validationResult.data.label,
-      lat: validationResult.data.lat,
-      lng: validationResult.data.lng,
-      order: stopCount + 1,
-    },
-  });
-  const locale = await getLocale();
-  revalidatePath(`/${locale}/routes/${routeId}`);
-};
-
-export const deleteStop = async (stopId: string, routeId: string) => {
-  const checkAuth = await authorize("routes", "delete");
-  if (!checkAuth.ok) return { error: checkAuth.error };
-  const { tenantId } = checkAuth;
-
-  await prisma.routeStop.deleteMany({
-    where: { id: stopId, route: { depot: { tenantId } } },
-  });
-  const locale = await getLocale();
-  revalidatePath(`/${locale}/routes/${routeId}`);
 };

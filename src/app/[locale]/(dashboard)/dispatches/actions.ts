@@ -7,6 +7,8 @@ import { z } from "zod";
 import { DispatchStatus } from "@prisma/client";
 import { authorize } from "@/lib/authorize";
 import { NEXT_DISPATCH_STATUS } from "@/lib/dispatch-status";
+import { diffRecords } from "@/lib/audit/diff";
+import { writeAudit } from "@/lib/audit/write";
 
 const dispatchCreateSchema = z.object({
   routeId: z.string().min(1, "Route ID is required"),
@@ -21,13 +23,16 @@ const dispatchUpdateSchema = z.object({
   status: z.nativeEnum(DispatchStatus),
 });
 
+// Dispatches have no name of their own, so the log label is route + plate.
+const dispatchLabel = (routeName: string, plate: string) => `${routeName} · ${plate}`;
+
 export const createDispatch = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
   const checkAuth = await authorize("dispatches", "create");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const routeId = data.get("routeId") as string;
   const driverId = data.get("driverId") as string;
@@ -59,18 +64,38 @@ export const createDispatch = async (
     };
   }
 
-  const dispatch = await prisma.dispatch.create({
-    data: {
-      routeId: validationResult.data.routeId,
-      vehicleId: validationResult.data.vehicleId,
-      driverId: validationResult.data.driverId,
-    },
-  });
+  await prisma.$transaction(async (tx) => {
+    const dispatch = await tx.dispatch.create({
+      data: {
+        routeId: validationResult.data.routeId,
+        vehicleId: validationResult.data.vehicleId,
+        driverId: validationResult.data.driverId,
+      },
+    });
 
-  // Dispatches are always created with PLANNED status (the schema's @default) —
-  // create the first history entry here with that status as well.
-  await prisma.dispatchStatusHistory.create({
-    data: { dispatchId: dispatch.id, status: dispatch.status },
+    // Dispatches are always created with PLANNED status (the schema's @default) —
+    // create the first history entry here with that status as well.
+    await tx.dispatchStatusHistory.create({
+      data: { dispatchId: dispatch.id, status: dispatch.status },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "CREATE",
+      resource: "dispatches",
+      resourceId: dispatch.id,
+      resourceLabel: dispatchLabel(route.name, vehicle.plate),
+      changes: diffRecords(
+        {},
+        {
+          status: dispatch.status,
+          route: route.name,
+          vehicle: vehicle.plate,
+          driver: driver.fullName,
+        },
+      ),
+    });
   });
 
   const locale = await getLocale();
@@ -86,7 +111,7 @@ export const updateDispatch = async (
 ) => {
   const checkAuth = await authorize("dispatches", "update");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const routeId = data.get("routeId") as string;
   const driverId = data.get("driverId") as string;
@@ -117,6 +142,11 @@ export const updateDispatch = async (
     }),
     prisma.dispatch.findFirst({
       where: { id: dispatchId, vehicle: { depot: { tenantId } } },
+      include: {
+        route: { select: { name: true } },
+        vehicle: { select: { plate: true } },
+        driver: { select: { fullName: true } },
+      },
     }),
   ]);
 
@@ -129,8 +159,25 @@ export const updateDispatch = async (
 
   const statusChanged = currentDispatch.status !== validationResult.data.status;
 
-  await prisma.$transaction([
-    prisma.dispatch.update({
+  const changes = diffRecords(
+    {
+      status: currentDispatch.status,
+      route: currentDispatch.route.name,
+      vehicle: currentDispatch.vehicle.plate,
+      driver: currentDispatch.driver.fullName,
+    },
+    {
+      status: validationResult.data.status,
+      route: route.name,
+      vehicle: vehicle.plate,
+      driver: driver.fullName,
+    },
+  );
+  // A save that only moved the status is logged as STATUS_CHANGE, anything else as UPDATE.
+  const onlyStatus = changes !== null && Object.keys(changes).length === 1 && "status" in changes;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.dispatch.update({
       where: { id: dispatchId },
       data: {
         routeId: validationResult.data.routeId,
@@ -138,15 +185,24 @@ export const updateDispatch = async (
         vehicleId: validationResult.data.vehicleId,
         status: validationResult.data.status,
       },
-    }),
-    ...(statusChanged
-      ? [
-          prisma.dispatchStatusHistory.create({
-            data: { dispatchId, status: validationResult.data.status },
-          }),
-        ]
-      : []),
-  ]);
+    });
+
+    if (statusChanged) {
+      await tx.dispatchStatusHistory.create({
+        data: { dispatchId, status: validationResult.data.status },
+      });
+    }
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: onlyStatus ? "STATUS_CHANGE" : "UPDATE",
+      resource: "dispatches",
+      resourceId: dispatchId,
+      resourceLabel: dispatchLabel(route.name, vehicle.plate),
+      changes,
+    });
+  });
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/dispatches`);
@@ -160,15 +216,41 @@ export const deleteDispatch = async (
 ) => {
   const checkAuth = await authorize("dispatches", "delete");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
-  const result = await prisma.dispatch.deleteMany({
+  const before = await prisma.dispatch.findFirst({
     where: { id: dispatchId, vehicle: { depot: { tenantId } } },
+    include: {
+      route: { select: { name: true } },
+      vehicle: { select: { plate: true } },
+      driver: { select: { fullName: true } },
+    },
   });
-
-  if (result.count === 0) {
+  if (!before) {
     return { error: t("dispatchNotFound"), success: false };
   }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.dispatch.delete({ where: { id: dispatchId } });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "DELETE",
+      resource: "dispatches",
+      resourceId: dispatchId,
+      resourceLabel: dispatchLabel(before.route.name, before.vehicle.plate),
+      changes: diffRecords(
+        {
+          status: before.status,
+          route: before.route.name,
+          vehicle: before.vehicle.plate,
+          driver: before.driver.fullName,
+        },
+        {},
+      ),
+    });
+  });
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/dispatches`);
@@ -208,7 +290,7 @@ export const advanceDispatchStatus = async (
 ) => {
   const checkAuth = await authorize("dispatches", "changeStatus");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId, role, driverId } = checkAuth;
+  const { t, tenantId, userId, email, role, driverId } = checkAuth;
 
   // The client only reports the status it saw; the target status is always derived on the server.
   const parsedStatus = z.nativeEnum(DispatchStatus).safeParse(expectedStatus);
@@ -233,6 +315,20 @@ export const advanceDispatchStatus = async (
     if (result.count === 0) return false;
 
     await tx.dispatchStatusHistory.create({ data: { dispatchId, status: nextStatus } });
+    const info = await tx.dispatch.findUnique({
+      where: { id: dispatchId },
+      select: { route: { select: { name: true } }, vehicle: { select: { plate: true } } },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "STATUS_CHANGE",
+      resource: "dispatches",
+      resourceId: dispatchId,
+      resourceLabel: info ? dispatchLabel(info.route.name, info.vehicle.plate) : undefined,
+      changes: { status: { from: parsedStatus.data, to: nextStatus } },
+    });
     return true;
   });
 

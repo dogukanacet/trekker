@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { authorize } from "@/lib/authorize";
+import { diffRecords } from "@/lib/audit/diff";
+import { writeAudit } from "@/lib/audit/write";
 
 const depotSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -16,7 +18,7 @@ export const createDepot = async (
 ) => {
   const checkAuth = await authorize("depots", "create");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const name = data.get("name") as string;
   const validationResult = depotSchema.safeParse({ name });
@@ -26,8 +28,20 @@ export const createDepot = async (
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
-  await prisma.depot.create({
-    data: { name: validationResult.data.name, tenantId },
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.depot.create({
+      data: { name: validationResult.data.name, tenantId },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "CREATE",
+      resource: "depots",
+      resourceId: created.id,
+      resourceLabel: created.name,
+      changes: diffRecords({}, { name: created.name }),
+    });
   });
 
   const locale = await getLocale();
@@ -43,7 +57,7 @@ export const updateDepot = async (
 ) => {
   const checkAuth = await authorize("depots", "update");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const name = data.get("name") as string;
   const validationResult = depotSchema.safeParse({ name });
@@ -53,14 +67,27 @@ export const updateDepot = async (
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
-  const result = await prisma.depot.updateMany({
-    where: { id: depotId, tenantId },
-    data: { name: validationResult.data.name },
-  });
-
-  if (result.count === 0) {
+  const before = await prisma.depot.findFirst({ where: { id: depotId, tenantId } });
+  if (!before) {
     return { error: t("depotNotFound"), success: false };
   }
+
+  await prisma.$transaction(async (tx) => {
+    const after = await tx.depot.update({
+      where: { id: depotId },
+      data: { name: validationResult.data.name },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "UPDATE",
+      resource: "depots",
+      resourceId: depotId,
+      resourceLabel: after.name,
+      changes: diffRecords({ name: before.name }, { name: after.name }),
+    });
+  });
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/depots`);
@@ -74,7 +101,7 @@ export const deleteDepot = async (
 ) => {
   const checkAuth = await authorize("depots", "delete");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const depot = await prisma.depot.findFirst({
     where: { id: depotId, tenantId },
@@ -90,7 +117,19 @@ export const deleteDepot = async (
     return { error: t("depotHasRelatedRecords"), success: false };
   }
 
-  await prisma.depot.delete({ where: { id: depotId } });
+  await prisma.$transaction(async (tx) => {
+    await tx.depot.delete({ where: { id: depotId } });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "DELETE",
+      resource: "depots",
+      resourceId: depotId,
+      resourceLabel: depot.name,
+      changes: diffRecords({ name: depot.name }, {}),
+    });
+  });
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/depots`);

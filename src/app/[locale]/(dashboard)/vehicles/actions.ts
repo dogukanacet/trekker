@@ -1,10 +1,13 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { authorize } from "@/lib/authorize";
+import { diffRecords } from "@/lib/audit/diff";
+import { writeAudit } from "@/lib/audit/write";
 
 const vehicleSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
@@ -14,13 +17,32 @@ const vehicleSchema = z.object({
   inspectionUntil: z.coerce.date().optional(),
 });
 
+// Only the fields worth showing in the audit log (no ids of children, no createdAt).
+function vehicleSnapshot(
+  v: {
+    plate: string;
+    model: string | null;
+    insuranceUntil: Date | null;
+    inspectionUntil: Date | null;
+  },
+  depotName: string,
+) {
+  return {
+    depot: depotName,
+    plate: v.plate,
+    model: v.model,
+    insuranceUntil: v.insuranceUntil,
+    inspectionUntil: v.inspectionUntil,
+  };
+}
+
 export const createVehicle = async (
   prevState: { error: string | null; success: boolean },
   data: FormData,
 ) => {
   const checkAuth = await authorize("vehicles", "create");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const plate = data.get("plate") as string;
@@ -52,15 +74,28 @@ export const createVehicle = async (
     return { error: t("depotNotFound"), success: false };
   }
 
-  await prisma.vehicle.create({
-    data: {
-      depotId: validationResult.data.depotId,
-      plate: validationResult.data.plate,
-      model: validationResult.data.model,
-      insuranceUntil: validationResult.data.insuranceUntil,
-      inspectionUntil: validationResult.data.inspectionUntil,
-    },
+  await prisma.$transaction(async (tx) => {
+    const created = await tx.vehicle.create({
+      data: {
+        depotId: validationResult.data.depotId,
+        plate: validationResult.data.plate,
+        model: validationResult.data.model,
+        insuranceUntil: validationResult.data.insuranceUntil,
+        inspectionUntil: validationResult.data.inspectionUntil,
+      },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "CREATE",
+      resource: "vehicles",
+      resourceId: created.id,
+      resourceLabel: created.plate,
+      changes: diffRecords({}, vehicleSnapshot(created, depot.name)),
+    });
   });
+
   const locale = await getLocale();
   revalidatePath(`/${locale}/vehicles`);
 
@@ -74,7 +109,7 @@ export const updateVehicle = async (
 ) => {
   const checkAuth = await authorize("vehicles", "update");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
 
   const depotId = data.get("depotId") as string;
   const plate = data.get("plate") as string;
@@ -99,22 +134,49 @@ export const updateVehicle = async (
   }
 
   const depot = await prisma.depot.findFirst({
-    where: { id: validationResult?.data?.depotId, tenantId },
+    where: { id: validationResult.data.depotId, tenantId },
   });
 
   if (!depot) {
     return { error: t("depotNotFound"), success: false };
   }
-  await prisma.vehicle.update({
-    where: { id: vehicleId },
-    data: {
-      depotId: validationResult.data.depotId,
-      plate: validationResult.data.plate,
-      model: validationResult.data.model,
-      insuranceUntil: validationResult.data.insuranceUntil,
-      inspectionUntil: validationResult.data.inspectionUntil,
-    },
+
+  // Tenant-scoped read: also closes the IDOR where any vehicle id could be updated.
+  const before = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
   });
+
+  if (!before) {
+    return { error: t("vehicleNotFound"), success: false };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const after = await tx.vehicle.update({
+      where: { id: vehicleId },
+      data: {
+        depotId: validationResult.data.depotId,
+        plate: validationResult.data.plate,
+        model: validationResult.data.model,
+        insuranceUntil: validationResult.data.insuranceUntil,
+        inspectionUntil: validationResult.data.inspectionUntil,
+      },
+    });
+
+    await writeAudit(tx, {
+      tenantId,
+      actor: { id: userId, email },
+      action: "UPDATE",
+      resource: "vehicles",
+      resourceId: vehicleId,
+      resourceLabel: after.plate,
+      changes: diffRecords(
+        vehicleSnapshot(before, before.depot.name),
+        vehicleSnapshot(after, depot.name),
+      ),
+    });
+  });
+
   const locale = await getLocale();
   revalidatePath(`/${locale}/vehicles`);
 
@@ -127,22 +189,36 @@ export const deleteVehicle = async (
 ) => {
   const checkAuth = await authorize("vehicles", "delete");
   if (!checkAuth.ok) return { error: checkAuth.error, success: false };
-  const { t, tenantId } = checkAuth;
+  const { t, tenantId, userId, email } = checkAuth;
+
+  // Read first: the log needs the plate and last known values after the row is gone.
+  const before = await prisma.vehicle.findFirst({
+    where: { id: vehicleId, depot: { tenantId } },
+    include: { depot: { select: { name: true } } },
+  });
+
+  if (!before) {
+    return { error: t("vehicleNotFound"), success: false };
+  }
 
   try {
-    const result = await prisma.vehicle.deleteMany({
-      where: { id: vehicleId, depot: { tenantId } },
-    });
+    await prisma.$transaction(async (tx) => {
+      await tx.vehicle.delete({ where: { id: vehicleId } });
 
-    if (result.count === 0) {
-      return { error: t("vehicleNotFound"), success: false };
-    }
+      await writeAudit(tx, {
+        tenantId,
+        actor: { id: userId, email },
+        action: "DELETE",
+        resource: "vehicles",
+        resourceId: vehicleId,
+        resourceLabel: before.plate,
+        changes: diffRecords(vehicleSnapshot(before, before.depot.name), {}),
+      });
+    });
   } catch (err) {
-    if (err instanceof Error && err.message.includes("foreign key constraint")) {
-      return {
-        error: t("vehicleRelation"),
-        success: false,
-      };
+    // P2003 = foreign key violation (the vehicle still has dispatches).
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+      return { error: t("vehicleRelation"), success: false };
     }
     throw err;
   }
