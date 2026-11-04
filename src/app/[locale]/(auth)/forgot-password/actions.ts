@@ -5,8 +5,9 @@ import { resend } from "@/lib/resend";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { generateResetToken, RESET_TOKEN_EXPIRE_MS } from "@/lib/reset-token";
+import { passesRateLimits, getClientIp } from "@/lib/rate-limit";
 
-const emailSchema = z.object({ email: z.string().email() });
+const emailSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
 
 export const requestPasswordReset = async (
   prevState: { error: string | null; success: boolean; email: string },
@@ -22,6 +23,15 @@ export const requestPasswordReset = async (
       success: false,
       email: "",
     };
+  }
+
+  const allowed = await passesRateLimits([
+    ["forgotEmail", validationResult.data.email],
+    ["forgotIp", await getClientIp()],
+  ]);
+
+  if (!allowed) {
+    return { error: t("tooManyAttempts"), success: false, email: "" };
   }
 
   const user = await prisma.user.findUnique({

@@ -14,7 +14,7 @@ import { diffRecords } from "@/lib/audit/diff";
 import { writeAudit } from "@/lib/audit/write";
 
 const userCreateSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email().max(254),
   role: z.nativeEnum(Role),
   driverId: z.string().optional(),
 });

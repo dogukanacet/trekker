@@ -3,6 +3,19 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { authConfig } from "@/lib/auth.config";
+import { z } from "zod";
+import { passesRateLimits, getClientIp } from "@/lib/rate-limit";
+import { RateLimitedError } from "@/lib/auth-errors";
+
+// Deliberately loose on the email: only normalize it, so seeded/legacy accounts can still sign in.
+const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().min(1).max(254),
+  password: z.string().min(1).max(256),
+});
+
+// Compared against when the email is unknown, so "no such user" costs as much as "wrong password".
+let dummyHash: Promise<string> | undefined;
+const getDummyHash = () => (dummyHash ??= bcrypt.hash("timing-equalizer", 10));
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -10,19 +23,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Credentials({
       credentials: { email: {}, password: {} },
       authorize: async (credentials) => {
-        const email = credentials?.email as string;
-        const password = credentials?.password as string;
+        const parsed = loginSchema.safeParse(credentials);
+        if (!parsed.success) return null;
+        const { email, password } = parsed.data;
+
+        // Enforced here (not in loginAction) so the /api/auth callback endpoint is covered too.
+        const ip = await getClientIp();
+        const allowed = await passesRateLimits([
+          ["loginAccountIp", `${email}|${ip ?? "unknown"}`],
+          ["loginAccount", email],
+          ["loginIp", ip],
+        ]);
+        if (!allowed) throw new RateLimitedError();
 
         const user = await prisma.user.findUnique({
           where: { email },
           include: { driver: { select: { id: true } } },
         });
 
-        if (!user) {
-          return null;
-        }
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) {
+        const isValid = await bcrypt.compare(
+          password,
+          user?.passwordHash ?? (await getDummyHash()),
+        );
+        if (!user || !isValid) {
           return null;
         }
 

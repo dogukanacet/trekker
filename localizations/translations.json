@@ -446,7 +446,8 @@
     "AuditLog.detail.field": "Field",
     "AuditLog.detail.before": "Before",
     "AuditLog.detail.after": "After",
-    "AuditLog.detail.none": "No details"
+    "AuditLog.detail.none": "No details",
+    "Errors.tooManyAttempts": "Too many attempts. Please try again later."
   },
   "tr": {
     "Auth.activateAccountDescription": "Trekker'a hoş geldin! Devam etmek için bir şifre belirle.",
@@ -895,6 +896,7 @@
     "AuditLog.detail.field": "Alan",
     "AuditLog.detail.before": "Önce",
     "AuditLog.detail.after": "Sonra",
-    "AuditLog.detail.none": "Ayrıntı yok"
+    "AuditLog.detail.none": "Ayrıntı yok",
+    "Errors.tooManyAttempts": "Çok fazla deneme yaptınız. Lütfen biraz sonra tekrar deneyin."
   }
 }
