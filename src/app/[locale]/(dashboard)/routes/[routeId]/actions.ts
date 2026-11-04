@@ -29,7 +29,7 @@ export const addStop = async (
   const validationResult = stopSchema.safeParse({ routeId, label, lat, lng });
 
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }) };
   }
 

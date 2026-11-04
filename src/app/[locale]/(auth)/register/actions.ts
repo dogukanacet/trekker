@@ -24,7 +24,7 @@ export async function registerAction(prevState: { error: string | null }, formDa
   const validationResult = registerSchema.safeParse({ email, password, companyName });
 
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: `${t("invalidForm")} ${errorMessages}` };
   }
 

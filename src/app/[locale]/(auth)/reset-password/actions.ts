@@ -20,7 +20,7 @@ export const resetPassword = async (
 
   const validationResult = resetSchema.safeParse({ password });
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
