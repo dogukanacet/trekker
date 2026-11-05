@@ -270,6 +270,7 @@ async function seedMockData(tenantId: string, counts: Counts, withUsers: boolean
             : faker.helpers.arrayElement(VEHICLE_MODELS),
         insuranceUntil: faker.number.int({ min: 1, max: 10 }) === 1 ? null : randomExpiry(),
         inspectionUntil: faker.number.int({ min: 1, max: 10 }) === 1 ? null : randomExpiry(),
+        tenantId,
       },
     }),
   );
