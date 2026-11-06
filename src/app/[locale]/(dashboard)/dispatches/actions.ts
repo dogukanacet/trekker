@@ -41,7 +41,7 @@ export const createDispatch = async (
   const validationResult = dispatchCreateSchema.safeParse({ routeId, vehicleId, driverId });
 
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
@@ -126,7 +126,7 @@ export const updateDispatch = async (
   });
 
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 

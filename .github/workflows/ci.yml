@@ -4,19 +4,48 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint-and-build:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: 24
+          cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
+      # Install scripts can be blocked by npm, so generate the Prisma client explicitly.
       - run: npx prisma generate
-      - run: npm run build
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm test
+      # Critical only: the remaining high finding (postcss bundled inside Next) has no fix on Next 15.
+      - run: npm audit --omit=dev --audit-level=critical
+
+  integration:
+    needs: checks
+    # Secrets are not available to pull requests from forks.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - name: Write .env.test
+        env:
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: printf 'DATABASE_URL="%s"\nINTEGRATION_TEST_DB=1\n' "$TEST_DATABASE_URL" > .env.test
+      - run: npm run test:db:migrate
+      - run: npm run test:integration

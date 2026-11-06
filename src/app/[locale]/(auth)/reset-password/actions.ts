@@ -5,9 +5,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
 import { z } from "zod";
+import { passesRateLimits, getClientIp } from "@/lib/rate-limit";
 
 const resetSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(72),
 });
 
 export const resetPassword = async (
@@ -18,9 +19,13 @@ export const resetPassword = async (
   const t = await getTranslations("Errors");
   const password = data.get("password") as string;
 
+  if (!(await passesRateLimits([["resetIp", await getClientIp()]]))) {
+    return { error: t("tooManyAttempts"), success: false };
+  }
+
   const validationResult = resetSchema.safeParse({ password });
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 

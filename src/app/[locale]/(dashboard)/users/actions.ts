@@ -14,7 +14,7 @@ import { diffRecords } from "@/lib/audit/diff";
 import { writeAudit } from "@/lib/audit/write";
 
 const userCreateSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email().max(254),
   role: z.nativeEnum(Role),
   driverId: z.string().optional(),
 });
@@ -38,7 +38,7 @@ export const createUser = async (
 
   const validationResult = userCreateSchema.safeParse({ email, role, driverId });
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
@@ -137,7 +137,7 @@ export const updateUser = async (
 
   const validationResult = userUpdateSchema.safeParse({ role, driverId });
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 

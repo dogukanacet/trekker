@@ -43,6 +43,7 @@ model Tenant {
   depots Depot[]
   users  User[]
   auditLogs AuditLog[]
+  vehicles Vehicle[]
 }
 
 model User {
@@ -75,14 +76,18 @@ model Depot {
 
 model Vehicle {
   id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
   depotId         String
   depot           Depot    @relation(fields: [depotId], references: [id])
-  plate           String@unique
+  plate           String
   model           String?
   insuranceUntil  DateTime?
   inspectionUntil DateTime?
   createdAt       DateTime @default(now())
   dispatches      Dispatch[]
+
+  @@unique([tenantId, plate])
 }
 
 model Driver {

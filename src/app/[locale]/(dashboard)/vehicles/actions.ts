@@ -11,7 +11,7 @@ import { writeAudit } from "@/lib/audit/write";
 
 const vehicleSchema = z.object({
   depotId: z.string().min(1, "Depot ID is required"),
-  plate: z.string().min(1, "Plate is required"),
+  plate: z.string().trim().toUpperCase().min(1, "Plate is required").max(20, "Plate is too long"),
   model: z.string().optional(),
   insuranceUntil: z.coerce.date().optional(),
   inspectionUntil: z.coerce.date().optional(),
@@ -62,7 +62,7 @@ export const createVehicle = async (
   });
 
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 
@@ -74,27 +74,36 @@ export const createVehicle = async (
     return { error: t("depotNotFound"), success: false };
   }
 
-  await prisma.$transaction(async (tx) => {
-    const created = await tx.vehicle.create({
-      data: {
-        depotId: validationResult.data.depotId,
-        plate: validationResult.data.plate,
-        model: validationResult.data.model,
-        insuranceUntil: validationResult.data.insuranceUntil,
-        inspectionUntil: validationResult.data.inspectionUntil,
-      },
-    });
+  try {
+    await prisma.$transaction(async (tx) => {
+      const created = await tx.vehicle.create({
+        data: {
+          depotId: validationResult.data.depotId,
+          plate: validationResult.data.plate,
+          model: validationResult.data.model,
+          insuranceUntil: validationResult.data.insuranceUntil,
+          inspectionUntil: validationResult.data.inspectionUntil,
+          tenantId: tenantId,
+        },
+      });
 
-    await writeAudit(tx, {
-      tenantId,
-      actor: { id: userId, email },
-      action: "CREATE",
-      resource: "vehicles",
-      resourceId: created.id,
-      resourceLabel: created.plate,
-      changes: diffRecords({}, vehicleSnapshot(created, depot.name)),
+      await writeAudit(tx, {
+        tenantId,
+        actor: { id: userId, email },
+        action: "CREATE",
+        resource: "vehicles",
+        resourceId: created.id,
+        resourceLabel: created.plate,
+        changes: diffRecords({}, vehicleSnapshot(created, depot.name)),
+      });
     });
-  });
+  } catch (err) {
+    // P2002 = unique violation: the plate already exists in this tenant.
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return { error: t("plateInUse"), success: false };
+    }
+    throw err;
+  }
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/vehicles`);
@@ -129,7 +138,7 @@ export const updateVehicle = async (
   });
 
   if (!validationResult.success) {
-    const errorMessages = validationResult.error.errors.map((err) => err.message).join(", ");
+    const errorMessages = validationResult.error.issues.map((err) => err.message).join(", ");
     return { error: t("validationFailed", { message: errorMessages }), success: false };
   }
 

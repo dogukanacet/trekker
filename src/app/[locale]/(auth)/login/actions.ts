@@ -12,14 +12,15 @@ export async function loginAction(
   formData: FormData,
 ) {
   const t = await getTranslations("Errors");
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string).trim().toLowerCase();
   const password = formData.get("password") as string;
 
   try {
     await signIn("credentials", { email, password, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: t("invalidCredentials"), success: false };
+      const rateLimited = (error as { code?: string }).code === "rate_limited";
+      return { error: t(rateLimited ? "tooManyAttempts" : "invalidCredentials"), success: false };
     }
     throw error;
   }
