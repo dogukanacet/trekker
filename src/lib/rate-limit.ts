@@ -1,6 +1,7 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { headers } from "next/headers";
+import * as Sentry from "@sentry/nextjs";
 
 const RULES = {
   loginAccountIp: { requests: 10, window: "15 m" }, // one person on one device
@@ -21,7 +22,12 @@ function getRedis() {
   if (redis !== undefined) return redis;
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  redis = url && token ? new Redis({ url, token }) : null;
+  try {
+    redis = url && token ? new Redis({ url, token }) : null;
+  } catch (error) {
+    Sentry.captureException(error);
+    redis = null;
+  }
   if (!redis && process.env.NODE_ENV === "production") {
     console.error("[rate-limit] Upstash is not configured: limits are NOT enforced");
   }
@@ -36,6 +42,7 @@ function getLimiter(rule: RuleName, client: Redis) {
       redis: client,
       limiter: Ratelimit.slidingWindow(requests, window),
       prefix: `rl:${rule}`,
+      timeout: 1500, // 1.5s
     });
     limiters.set(rule, limiter);
   }
@@ -52,16 +59,23 @@ async function allow(rule: RuleName, identifier: string): Promise<boolean> {
   } catch (error) {
     // Fail open: an Upstash outage must not lock everyone out of the app.
     console.error("[rate-limit] check failed, allowing the request", error);
+    Sentry.captureException(error);
     return true;
   }
 }
 
 // Runs all checks in parallel; entries with a null identifier (e.g. unknown IP) are skipped.
 export async function passesRateLimits(checks: Array<[RuleName, string | null]>) {
-  const results = await Promise.all(
-    checks.flatMap(([rule, id]) => (id === null ? [] : [allow(rule, id)])),
-  );
-  return results.every(Boolean);
+  try {
+    const results = await Promise.all(
+      checks.flatMap(([rule, id]) => (id === null ? [] : [allow(rule, id)])),
+    );
+    return results.every(Boolean);
+  } catch (error) {
+    // Fail open: a broken or misconfigured limiter must never block sign-ups or logins.
+    Sentry.captureException(error);
+    return true;
+  }
 }
 
 // On Vercel the platform sets x-forwarded-for itself, so the first entry is the real client.

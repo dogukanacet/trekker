@@ -448,7 +448,8 @@
     "AuditLog.detail.after": "After",
     "AuditLog.detail.none": "No details",
     "Errors.tooManyAttempts": "Too many attempts. Please try again later.",
-    "Errors.plateInUse": "This plate is already registered."
+    "Errors.plateInUse": "This plate is already registered.",
+    "Errors.somethingWentWrong": "Something went wrong. Please try again later."
   },
   "tr": {
     "Auth.activateAccountDescription": "Trekker'a hoş geldin! Devam etmek için bir şifre belirle.",
@@ -899,6 +900,7 @@
     "AuditLog.detail.after": "Sonra",
     "AuditLog.detail.none": "Ayrıntı yok",
     "Errors.tooManyAttempts": "Çok fazla deneme yaptınız. Lütfen biraz sonra tekrar deneyin.",
-    "Errors.plateInUse": "Bu plaka zaten kayıtlı."
+    "Errors.plateInUse": "Bu plaka zaten kayıtlı.",
+    "Errors.somethingWentWrong": "Bir şeyler ters gitti. Lütfen biraz sonra tekrar deneyin."
   }
 }
