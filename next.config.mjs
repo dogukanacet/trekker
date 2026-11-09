@@ -39,7 +39,7 @@ const nextConfig = {
         source: "/:path*",
         headers: [
           ...securityHeaders,
-          ...(isProd ? [{ key: "Content-Security-Policy-Report-Only", value: csp }] : []),
+          ...(isProd ? [{ key: "Content-Security-Policy", value: csp }] : []),
         ],
       },
     ];

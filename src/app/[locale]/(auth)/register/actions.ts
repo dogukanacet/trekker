@@ -7,6 +7,7 @@ import { redirect } from "@/i18n/navigation";
 import { getLocale } from "next-intl/server";
 import { getTranslations } from "next-intl/server";
 import { passesRateLimits, getClientIp } from "@/lib/rate-limit";
+import * as Sentry from "@sentry/nextjs";
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
@@ -34,28 +35,28 @@ export async function registerAction(prevState: { error: string | null }, formDa
 
   const validData = validationResult.data;
 
-  const isEmailExist = await prisma.user.findUnique({
-    where: { email: validData.email },
-  });
+  try {
+    const isEmailExist = await prisma.user.findUnique({ where: { email: validData.email } });
+    if (isEmailExist) return { error: t("emailInUse") };
 
-  if (isEmailExist) {
-    return { error: t("emailInUse") };
-  }
+    const passwordHash = await bcrypt.hash(validData.password, 10);
 
-  const passwordHash = await bcrypt.hash(validData.password, 10);
-
-  await prisma.$transaction(async (tx) => {
-    const tenant = await tx.tenant.create({ data: { name: validData.companyName } });
-    await tx.depot.create({ data: { name: "Ana Depo", tenantId: tenant.id } });
-    await tx.user.create({
-      data: {
-        email: validData.email,
-        passwordHash,
-        tenantId: tenant.id,
-        role: "ADMIN",
-      },
+    await prisma.$transaction(async (tx) => {
+      const tenant = await tx.tenant.create({ data: { name: validData.companyName } });
+      await tx.depot.create({ data: { name: "Ana Depo", tenantId: tenant.id } });
+      await tx.user.create({
+        data: {
+          email: validData.email,
+          passwordHash,
+          tenantId: tenant.id,
+          role: "ADMIN",
+        },
+      });
     });
-  });
+  } catch (error) {
+    Sentry.captureException(error);
+    return { error: t("somethingWentWrong") };
+  }
 
   redirect({ href: "/login", locale });
   return { error: null };
