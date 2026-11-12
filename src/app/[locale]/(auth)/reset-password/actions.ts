@@ -39,6 +39,15 @@ export const resetPassword = async (
     return { error: t("invalidOrExpiredToken"), success: false };
   }
 
+  // Demo accounts have no mailbox and no real password: refuse with the same error as a bad token.
+  const owner = await prisma.user.findUnique({
+    where: { id: resetToken.userId },
+    select: { tenant: { select: { isDemo: true } } },
+  });
+  if (!owner || owner.tenant.isDemo) {
+    return { error: t("invalidOrExpiredToken"), success: false };
+  }
+
   const passwordHash = await bcrypt.hash(validationResult.data.password, 10);
 
   await prisma.$transaction([

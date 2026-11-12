@@ -11,10 +11,15 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { role: true },
+    select: { role: true, tenant: { select: { isDemo: true, expiresAt: true } } },
   });
 
   if (!user || user.role !== session.user.role) {
+    return NextResponse.json({ valid: false }, { status: 401 });
+  }
+
+  // An expired demo is invalid even if the cleanup has not removed its rows yet.
+  if (user.tenant.isDemo && (!user.tenant.expiresAt || user.tenant.expiresAt <= new Date())) {
     return NextResponse.json({ valid: false }, { status: 401 });
   }
 

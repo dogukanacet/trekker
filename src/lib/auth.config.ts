@@ -20,6 +20,7 @@ export const authConfig = {
         token.tenantId = user.tenantId;
         token.driverId = user.driverId ?? null;
         token.accessTokenExpires = Date.now() + accessTokenTtlMs;
+        token.demoExpiresAt = user.demoExpiresAt ?? null;
       }
       return token;
     },
@@ -28,6 +29,7 @@ export const authConfig = {
       session.user.tenantId = token.tenantId as string;
       session.user.role = token.role as Role;
       session.user.driverId = (token.driverId as string | null | undefined) ?? null;
+      session.user.demoExpiresAt = (token.demoExpiresAt as number | null | undefined) ?? null;
       if (token.error) {
         session.error = token.error as string;
       }

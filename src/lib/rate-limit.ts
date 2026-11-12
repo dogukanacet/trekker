@@ -11,6 +11,7 @@ const RULES = {
   forgotIp: { requests: 10, window: "1 h" },
   registerIp: { requests: 5, window: "1 h" },
   resetIp: { requests: 10, window: "15 m" },
+  demoIp: { requests: 3, window: "1 h" }, // one visitor starting demo tenants
 } as const;
 
 export type RuleName = keyof typeof RULES;

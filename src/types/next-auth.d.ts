@@ -6,6 +6,7 @@ declare module "next-auth" {
     role?: Role;
     tenantId?: string;
     driverId?: string | null;
+    demoExpiresAt?: number | null;
   }
 
   interface Session extends DefaultSession {
@@ -15,6 +16,7 @@ declare module "next-auth" {
       role: Role;
       tenantId: string;
       driverId: string | null;
+      demoExpiresAt: number | null;
     } & DefaultSession["user"];
   }
 }
@@ -26,5 +28,6 @@ declare module "next-auth/jwt" {
     driverId?: string | null;
     accessTokenExpires?: number;
     error?: string;
+    demoExpiresAt?: number | null;
   }
 }
