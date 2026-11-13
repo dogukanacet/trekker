@@ -37,18 +37,11 @@ export const requestPasswordReset = async (
 
   const user = await prisma.user.findUnique({
     where: { email: validationResult.data.email },
+    include: { tenant: { select: { isDemo: true } } },
   });
 
-  // Return success even if the user is not found to prevent email enumeration.
-  if (user) {
-    // Demo accounts have no mailbox and must never receive a password.
-    if (user && (await isDemoTenant(prisma, user.tenantId))) {
-      return {
-        error: t("validationFailed", { message: "Invalid email" }),
-        success: false,
-        email: "",
-      };
-    }
+  // Unknown emails and demo accounts get the same response: no enumeration, no mail to demo.invalid.
+  if (user && !user.tenant.isDemo) {
     const { token, tokenHash } = generateResetToken();
 
     await prisma.passwordResetToken.create({

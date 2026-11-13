@@ -2,7 +2,8 @@
 
 Multi-tenant fleet and dispatch management platform. Dispatchers plan routes, assign vehicles and drivers, and track dispatch status; drivers see and advance only their own work; administrators manage users and, at platform level, the application's texts without a redeploy.
 
-**Live demo:** https://trekker-gilt.vercel.app
+> **Try the live demo (no sign-up):** https://trekker-gilt.vercel.app/en/login, then click **Try the live demo**.
+> Every visitor gets a private, temporary tenant with sample data, deleted after 24 hours.
 
 | Dashboard                                    | Dispatches grid                                |
 | -------------------------------------------- | ---------------------------------------------- |
@@ -113,6 +114,25 @@ Pages never talk to AG Grid directly. They pass `GridColumn<T>[]` (header, raw v
 ### Translations
 
 Messages ship as one flat JSON file (`localizations/translations.json`, `{ locale: { "Namespace.key": "text" } }`). At runtime the app merges published database overrides over that file and caches the result with `unstable_cache` and a tag; publishing calls `revalidateTag`, which is why no build is needed. Overrides can only replace existing keys or add valid new ones, and the flag that unlocks the panel (`isPlatformAdmin`) is read from the database on every action instead of the JWT.
+
+## Live demo
+
+The login page has a **Try the live demo** button. There is no shared account.
+
+- **Isolated per visitor.** Each click creates a new tenant with seeded data (depots, vehicles, drivers,
+  routes, dispatches, audit entries) and three users: Admin, Dispatcher and Driver. The banner lets you
+  switch roles; the switch is validated on the server and can only reach users of the same demo tenant.
+- **Disposable.** Demo tenants expire after 24 hours. An expired demo is rejected by the middleware,
+  `authorize()`, session validation and token refresh, and is deleted in dependency order by a cleanup
+  that runs after new demos are created, so no cron job is needed.
+- **Abuse limits.** 3 demos per IP per hour (Upstash sliding window) and at most 50 active demo tenants.
+- **Safe by construction.** Passwords are random and never shown. Demo sign-in uses a server-signed,
+  60-second HMAC ticket instead of a password. Invites are simulated (unroutable `@demo.invalid`
+  address, no email, no reset token), password reset is refused for demo accounts, the three seeded
+  users cannot be edited or deleted, and `isPlatformAdmin` is never set. That is why the translation
+  panel is not part of the demo; see the screenshots instead.
+- **Tested.** Unit tests cover the ticket and email helpers. Integration tests cover tenant seeding,
+  isolation between demos, and cleanup of expired demos.
 
 ## Security
 
