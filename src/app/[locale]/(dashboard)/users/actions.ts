@@ -12,6 +12,7 @@ import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { diffRecords } from "@/lib/audit/diff";
 import { writeAudit } from "@/lib/audit/write";
+import { demoInviteEmail, isCoreDemoUserEmail, isDemoTenant } from "@/lib/demo/guards";
 
 const userCreateSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
@@ -46,9 +47,13 @@ export const createUser = async (
     return { error: t("driverRequiredForRole"), success: false };
   }
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email: validationResult.data.email },
-  });
+  // Demo invites are simulated: unroutable address, no reset token, no email (see guards.ts).
+  const isDemo = await isDemoTenant(prisma, tenantId);
+  const inviteEmail = isDemo
+    ? demoInviteEmail(validationResult.data.email, tenantId)
+    : validationResult.data.email;
+
+  const existingUser = await prisma.user.findUnique({ where: { email: inviteEmail } });
   if (existingUser) {
     return { error: t("emailInUse"), success: false };
   }
@@ -72,7 +77,7 @@ export const createUser = async (
   const user = await prisma.$transaction(async (tx) => {
     const created = await tx.user.create({
       data: {
-        email: validationResult.data.email,
+        email: inviteEmail,
         passwordHash: placeholderPasswordHash,
         role: validationResult.data.role,
         tenantId,
@@ -96,26 +101,28 @@ export const createUser = async (
     return created;
   });
 
-  const { token, tokenHash } = generateResetToken();
-  await prisma.passwordResetToken.create({
-    data: {
-      userId: user.id,
-      tokenHash,
-      expiresAt: new Date(Date.now() + RESET_TOKEN_EXPIRE_MS),
-    },
-  });
+  if (!isDemo) {
+    const { token, tokenHash } = generateResetToken();
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt: new Date(Date.now() + RESET_TOKEN_EXPIRE_MS),
+      },
+    });
 
-  const inviteUrl = `${process.env.AUTH_URL}/reset-password?token=${token}&type=invite`;
+    const inviteUrl = `${process.env.AUTH_URL}/reset-password?token=${token}&type=invite`;
 
-  await resend.emails.send({
-    from: "onboarding@resend.dev",
-    to: user.email,
-    subject: "Trekker - Hesabınız Oluşturuldu",
-    html: `
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: user.email,
+      subject: "Trekker - Hesabınız Oluşturuldu",
+      html: `
       <p>Trekker'da senin için bir hesap oluşturuldu. Şifreni belirlemek için aşağıdaki linke tıkla. Bu link 30 dakika geçerlidir.</p>
       <p><a href="${inviteUrl}">${inviteUrl}</a></p>
     `,
-  });
+    });
+  }
 
   const locale = await getLocale();
   revalidatePath(`/${locale}/users`);
@@ -151,6 +158,11 @@ export const updateUser = async (
   });
   if (!targetUser) {
     return { error: t("userNotFound"), success: false };
+  }
+
+  // Role switching relies on the three seeded accounts; keep them intact in demos.
+  if (isCoreDemoUserEmail(targetUser.email) && (await isDemoTenant(prisma, tenantId))) {
+    return { error: t("demoActionDisabled"), success: false };
   }
 
   let newDriverName: string | null = null;
@@ -222,6 +234,10 @@ export const deleteUser = async (
   const target = await prisma.user.findFirst({ where: { id: userId, tenantId } });
   if (!target) {
     return { error: t("userNotFound"), success: false };
+  }
+
+  if (isCoreDemoUserEmail(target.email) && (await isDemoTenant(prisma, tenantId))) {
+    return { error: t("demoActionDisabled"), success: false };
   }
 
   await prisma.$transaction(async (tx) => {

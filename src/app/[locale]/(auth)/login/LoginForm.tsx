@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslations } from "next-intl";
+import { TryDemoButton } from "@/components/demo/try-demo-button";
 
 export function LoginForm() {
   const t = useTranslations("Auth");
@@ -26,30 +27,40 @@ export function LoginForm() {
   }, [state.success]);
 
   return (
-    <form action={formAction} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="email">{t("email")}</Label>
-        <Input id="email" type="email" name="email" required />
-      </div>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">{t("password")}</Label>
-          <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-            {t("forgotPassword")}
-          </Link>
+    <div className="space-y-6">
+      <form action={formAction} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">{t("email")}</Label>
+          <Input id="email" type="email" name="email" required />
         </div>
-        <Input id="password" type="password" name="password" required />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">{t("password")}</Label>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+              {t("forgotPassword")}
+            </Link>
+          </div>
+          <Input id="password" type="password" name="password" required />
+        </div>
+        {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? t("loggingIn") : t("login")}
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          {t("noAccount")}{" "}
+          <Link href="/register" className="text-primary hover:underline">
+            {t("register")}
+          </Link>
+        </p>
+      </form>
+
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <div className="h-px flex-1 bg-border" />
+        {t("demoOr")}
+        <div className="h-px flex-1 bg-border" />
       </div>
-      {state.error && <p className="text-sm text-destructive">{state.error}</p>}
-      <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? t("loggingIn") : t("login")}
-      </Button>
-      <p className="text-center text-sm text-muted-foreground">
-        {t("noAccount")}{" "}
-        <Link href="/register" className="text-primary hover:underline">
-          {t("register")}
-        </Link>
-      </p>
-    </form>
+
+      <TryDemoButton />
+    </div>
   );
 }

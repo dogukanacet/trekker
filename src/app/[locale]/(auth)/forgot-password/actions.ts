@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 import { generateResetToken, RESET_TOKEN_EXPIRE_MS } from "@/lib/reset-token";
 import { passesRateLimits, getClientIp } from "@/lib/rate-limit";
+import { isDemoTenant } from "@/lib/demo/guards";
 
 const emailSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) });
 
@@ -40,6 +41,14 @@ export const requestPasswordReset = async (
 
   // Return success even if the user is not found to prevent email enumeration.
   if (user) {
+    // Demo accounts have no mailbox and must never receive a password.
+    if (user && (await isDemoTenant(prisma, user.tenantId))) {
+      return {
+        error: t("validationFailed", { message: "Invalid email" }),
+        success: false,
+        email: "",
+      };
+    }
     const { token, tokenHash } = generateResetToken();
 
     await prisma.passwordResetToken.create({

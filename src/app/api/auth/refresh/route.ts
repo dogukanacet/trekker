@@ -31,6 +31,18 @@ export async function POST() {
     );
   }
 
+  // An expired demo must not be renewable, even if the cleanup has not removed its rows yet.
+  const owner = await prisma.user.findUnique({
+    where: { id: tokenRecord.userId },
+    select: { tenant: { select: { isDemo: true, expiresAt: true } } },
+  });
+  if (
+    !owner ||
+    (owner.tenant.isDemo && (!owner.tenant.expiresAt || owner.tenant.expiresAt <= new Date()))
+  ) {
+    return NextResponse.json({ error: "demo expired" }, { status: 401 });
+  }
+
   // rotation: cancel the old one & generate new
   const newRawToken = generateRefreshToken();
 
@@ -49,6 +61,6 @@ export async function POST() {
   ]);
 
   //setting cookies
-  setRefreshCookie(newRawToken, getRefreshTokenExpiryMs());
+  await setRefreshCookie(newRawToken, getRefreshTokenExpiryMs());
   return NextResponse.json({ ok: true });
 }

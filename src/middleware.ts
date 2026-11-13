@@ -39,7 +39,9 @@ function getLocaleFromPath(pathname: string): string {
 }
 
 export default auth((req) => {
-  const isLoggedIn = !!req.auth;
+  const demoExpiresAt = req.auth?.user?.demoExpiresAt;
+  const isDemoExpired = typeof demoExpiresAt === "number" && Date.now() > demoExpiresAt;
+  const isLoggedIn = !!req.auth && !isDemoExpired;
   const pathWithoutLocale = stripLocale(req.nextUrl.pathname);
 
   const isOnLogin = pathWithoutLocale === "/login";

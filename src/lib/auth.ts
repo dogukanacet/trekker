@@ -6,6 +6,7 @@ import { authConfig } from "@/lib/auth.config";
 import { z } from "zod";
 import { passesRateLimits, getClientIp } from "@/lib/rate-limit";
 import { RateLimitedError } from "@/lib/auth-errors";
+import { verifyDemoTicket } from "@/lib/demo/ticket";
 
 // Deliberately loose on the email: only normalize it, so seeded/legacy accounts can still sign in.
 const loginSchema = z.object({
@@ -55,6 +56,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: user.role,
           tenantId: user.tenantId,
           driverId: user.driver?.id ?? null,
+        };
+      },
+    }),
+    Credentials({
+      id: "demo",
+      credentials: { ticket: {} },
+      authorize: async (credentials) => {
+        const ticket = typeof credentials?.ticket === "string" ? credentials.ticket : "";
+        const userId = verifyDemoTicket(ticket);
+        if (!userId) return null;
+
+        // The signature proves the server issued this ticket; the tenant filter is a second,
+        // DB-backed guard so only live demo tenants can ever be entered this way.
+        const user = await prisma.user.findFirst({
+          where: { id: userId, tenant: { isDemo: true, expiresAt: { gt: new Date() } } },
+          include: {
+            driver: { select: { id: true } },
+            tenant: { select: { expiresAt: true } },
+          },
+        });
+        if (!user) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          tenantId: user.tenantId,
+          driverId: user.driver?.id ?? null,
+          demoExpiresAt: user.tenant.expiresAt?.getTime() ?? null,
         };
       },
     }),

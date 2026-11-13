@@ -39,11 +39,16 @@ model Tenant {
   id        String   @id @default(cuid())
   name      String
   createdAt DateTime @default(now())
+  isDemo    Boolean   @default(false)
+  expiresAt DateTime? // Set only for demo tenants; null means the tenant never expires.
+
 
   depots Depot[]
   users  User[]
   auditLogs AuditLog[]
   vehicles Vehicle[]
+
+  @@index([isDemo, expiresAt])
 }
 
 model User {

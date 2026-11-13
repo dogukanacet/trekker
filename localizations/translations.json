@@ -449,7 +449,21 @@
     "AuditLog.detail.none": "No details",
     "Errors.tooManyAttempts": "Too many attempts. Please try again later.",
     "Errors.plateInUse": "This plate is already registered.",
-    "Errors.somethingWentWrong": "Something went wrong. Please try again later."
+    "Errors.somethingWentWrong": "Something went wrong. Please try again later.",
+    "Auth.tryDemo": "Try the live demo (no sign-up)",
+    "Auth.demoStarting": "Preparing your demo...",
+    "Auth.demoHint": "Creates a temporary account with sample data, deleted after 24 hours.",
+    "Auth.demoOr": "or",
+    "Demo.banner": "Demo data is deleted in about {hours, plural, one {# hour} other {# hours}}. Please don't enter real personal data.",
+    "Demo.viewAs": "View as:",
+    "Demo.roles.ADMIN": "Admin",
+    "Demo.roles.DISPATCHER": "Dispatcher",
+    "Demo.roles.DRIVER": "Driver",
+    "Errors.demoActionDisabled": "This action is disabled in the demo.",
+    "Errors.demoRateLimited": "Too many demo requests. Please try again later.",
+    "Errors.demoCapacityReached": "All demo slots are in use right now. Please try again in a few minutes.",
+    "Errors.demoStartFailed": "Could not start the demo. Please try again.",
+    "Errors.demoSwitchFailed": "Could not switch roles."
   },
   "tr": {
     "Auth.activateAccountDescription": "Trekker'a hoş geldin! Devam etmek için bir şifre belirle.",
@@ -901,6 +915,20 @@
     "AuditLog.detail.none": "Ayrıntı yok",
     "Errors.tooManyAttempts": "Çok fazla deneme yaptınız. Lütfen biraz sonra tekrar deneyin.",
     "Errors.plateInUse": "Bu plaka zaten kayıtlı.",
-    "Errors.somethingWentWrong": "Bir şeyler ters gitti. Lütfen biraz sonra tekrar deneyin."
+    "Errors.somethingWentWrong": "Bir şeyler ters gitti. Lütfen biraz sonra tekrar deneyin.",
+    "Auth.tryDemo": "Demo'yu dene (kayıt gerekmez)",
+    "Auth.demoStarting": "Demo hazırlanıyor...",
+    "Auth.demoHint": "Örnek verilerle dolu geçici bir hesap açılır ve 24 saat sonra silinir.",
+    "Auth.demoOr": "veya",
+    "Demo.banner": "Demo verisi yaklaşık {hours} saat içinde silinir. Gerçek kişisel veri girmeyin.",
+    "Demo.viewAs": "Şu rolle gör:",
+    "Demo.roles.ADMIN": "Yönetici",
+    "Demo.roles.DISPATCHER": "Sevk görevlisi",
+    "Demo.roles.DRIVER": "Sürücü",
+    "Errors.demoActionDisabled": "Bu işlem demo hesabında kapalı.",
+    "Errors.demoRateLimited": "Çok fazla demo isteği gönderildi. Lütfen biraz sonra tekrar dene.",
+    "Errors.demoCapacityReached": "Şu an tüm demo hesapları dolu. Birkaç dakika sonra tekrar dene.",
+    "Errors.demoStartFailed": "Demo başlatılamadı. Lütfen tekrar dene.",
+    "Errors.demoSwitchFailed": "Rol değiştirilemedi."
   }
 }

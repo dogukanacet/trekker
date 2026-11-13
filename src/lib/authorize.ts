@@ -11,6 +11,12 @@ export async function authorize(resource: Resource, action: Action) {
     return { ok: false as const, error: t("unauthenticated") };
   }
 
+  // An expired demo session is treated as signed out, even before the cleanup deletes its rows.
+  const demoExpiresAt = session.user.demoExpiresAt;
+  if (typeof demoExpiresAt === "number" && Date.now() > demoExpiresAt) {
+    return { ok: false as const, error: t("unauthenticated") };
+  }
+
   if (!hasPermission(session.user.role, resource, action)) {
     return { ok: false as const, error: t("forbidden") };
   }
