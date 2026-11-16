@@ -1,0 +1,21 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  deploy-development:
+    needs: ci
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+      ref: ${{ github.event.release.tag_name }}
+    secrets: inherit
