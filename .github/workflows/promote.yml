@@ -1,0 +1,37 @@
+name: Deploy to test / production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [test, production]
+        required: true
+      tag:
+        description: Release tag to deploy (for example v1.4.0)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require a published release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          is_draft=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)
+          test "$is_draft" = "false"
+
+  deploy:
+    needs: verify-tag
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: ${{ inputs.environment }}
+      ref: ${{ inputs.tag }}
+    secrets: inherit
