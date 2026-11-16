@@ -36,9 +36,11 @@ jobs:
 
   integration:
     needs: checks
-    # Secrets are not available to pull requests from forks. Every other trigger
-    # (push, release via workflow_call) runs the tests; a plain "event_name == push"
-    # check would silently skip them when this workflow is called from a release.
+    # Runs against one shared Neon branch, so only one integration job may run at a time,
+    # and it must never be cancelled halfway through a migration.
+    concurrency:
+      group: integration-test-db
+      cancel-in-progress: false
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
