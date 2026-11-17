@@ -134,6 +134,30 @@ The login page has a **Try the live demo** button. There is no shared account.
 - **Tested.** Unit tests cover the ticket and email helpers. Integration tests cover tenant seeding,
   isolation between demos, and cleanup of expired demos.
 
+## Environments & releases
+
+The project follows trunk-based development: short-lived branches, pull requests into `main`,
+and **no deployment on merge**. Releases are cut explicitly.
+
+| Environment | Vercel project | Database (Neon)      | How it is deployed                                                                 |
+| ----------- | -------------- | -------------------- | ---------------------------------------------------------------------------------- |
+| development | `trekker-dev`  | `development` branch | Automatically when a GitHub Release is published                                   |
+| test        | `trekker-test` | `staging` branch     | Manually, by running the _Deploy to test / production_ workflow with a release tag |
+| production  | `trekker`      | `production` branch  | Same manual workflow, same tag                                                     |
+
+How a release works:
+
+1. A pull request must pass lint, type checks, unit tests, a dependency audit and the
+   integration tests (tenant isolation, demo cleanup) before it can be merged.
+2. Publishing a GitHub Release runs the full CI again, then deploys that tag to development.
+3. The same tag is promoted to test and then production by running the manual workflow.
+   Rolling back means deploying an older tag the same way.
+
+Each environment is a separate Vercel project with its own database and secrets, and is built on
+Vercel from the tagged commit. The deploy workflow only accepts published release tags.
+Database migrations are applied during each deploy, so they are written to be backward compatible
+(add first, remove later).
+
 ## Security
 
 - **Tenant isolation.** Every query and mutation is scoped by `tenantId` from the session, never from the client. Records are read tenant-scoped before they are changed (IDOR guard), and vehicle plates are unique per tenant (`@@unique([tenantId, plate])`), so one company can never see or block another's data.
