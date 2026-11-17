@@ -37,21 +37,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
 
-      - run: npm ci
-
-      # Each Vercel project is its own environment, so every deploy targets that project's "production".
-      - name: Pull Vercel project settings
-        run: npx --yes vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
-
-      - name: Build
-        run: npx --yes vercel@latest build --prod --token="$VERCEL_TOKEN"
-
+      # The build runs on Vercel, so the project's env vars (including sensitive ones,
+      # which `vercel pull` cannot download) are available to it. Each Vercel project is
+      # its own environment, so every deploy targets that project's "production".
       - name: Deploy
         id: deploy
         run: |
-          url=$(npx --yes vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          url=$(npx --yes vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Summary
