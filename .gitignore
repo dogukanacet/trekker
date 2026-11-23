@@ -13,3 +13,6 @@ dist
 *.tsbuildinfo
 .vercel
 .env*
+
+/test-results/
+/playwright-report/
