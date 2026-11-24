@@ -1,3 +1,4 @@
+import { DemoBanner } from "@/components/demo/demo-banner";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { auth } from "@/lib/auth";
@@ -14,6 +15,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <Sidebar role={session?.user.role} isPlatformAdmin={isPlatformAdmin} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar />
+        <DemoBanner />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>

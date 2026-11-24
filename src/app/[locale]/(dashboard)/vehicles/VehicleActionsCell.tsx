@@ -77,7 +77,11 @@ export function VehicleActionsCell({
   return (
     <div className="flex h-full items-center justify-end gap-1">
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogTrigger render={<Button variant="ghost" size="icon" />}>
+        <DialogTrigger
+          render={
+            <Button variant="ghost" size="icon" aria-label={`${t("edit")} ${vehicle.plate}`} />
+          }
+        >
           <Pencil className="h-4 w-4" />
         </DialogTrigger>
         <DialogContent>
@@ -143,7 +147,15 @@ export function VehicleActionsCell({
       </Dialog>
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogTrigger render={<Button variant="ghost" size="icon" />}>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`${common("delete")} ${vehicle.plate}`}
+            />
+          }
+        >
           <Trash2 className="h-4 w-4 text-destructive" />
         </AlertDialogTrigger>
         <AlertDialogContent>

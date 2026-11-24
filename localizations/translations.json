@@ -463,7 +463,8 @@
     "Errors.demoRateLimited": "Too many demo requests. Please try again later.",
     "Errors.demoCapacityReached": "All demo slots are in use right now. Please try again in a few minutes.",
     "Errors.demoStartFailed": "Could not start the demo. Please try again.",
-    "Errors.demoSwitchFailed": "Could not switch roles."
+    "Errors.demoSwitchFailed": "Could not switch roles.",
+    "Common.toggleTheme": "Toggle theme"
   },
   "tr": {
     "Auth.activateAccountDescription": "Trekker'a hoş geldin! Devam etmek için bir şifre belirle.",
@@ -929,6 +930,7 @@
     "Errors.demoRateLimited": "Çok fazla demo isteği gönderildi. Lütfen biraz sonra tekrar dene.",
     "Errors.demoCapacityReached": "Şu an tüm demo hesapları dolu. Birkaç dakika sonra tekrar dene.",
     "Errors.demoStartFailed": "Demo başlatılamadı. Lütfen tekrar dene.",
-    "Errors.demoSwitchFailed": "Rol değiştirilemedi."
+    "Errors.demoSwitchFailed": "Rol değiştirilemedi.",
+    "Common.toggleTheme": "Tema değiştir"
   }
 }
