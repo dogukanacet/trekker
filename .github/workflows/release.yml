@@ -19,3 +19,11 @@ jobs:
       environment: development
       ref: ${{ github.event.release.tag_name }}
     secrets: inherit
+
+  # Smoke and accessibility checks against the freshly deployed development environment.
+  e2e-development:
+    needs: deploy-development
+    uses: ./.github/workflows/e2e.yml
+    with:
+      environment: development
+    secrets: inherit
