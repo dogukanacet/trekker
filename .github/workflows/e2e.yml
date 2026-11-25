@@ -32,7 +32,7 @@ jobs:
       # Set per environment: Settings > Environments > <name> > Variables.
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - uses: actions/setup-node@v4
