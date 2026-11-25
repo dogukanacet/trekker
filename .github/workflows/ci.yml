@@ -36,13 +36,12 @@ jobs:
 
   integration:
     needs: checks
-    # Runs against one shared Neon branch, so only one integration job may run at a time,
-    # and it must never be cancelled halfway through a migration.
-    concurrency:
-      group: integration-test-db
-      cancel-in-progress: false
+    # Every run gets its own Postgres schema on the shared Neon branch,
+    # so runs can execute in parallel and nothing has to queue or get cancelled.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,9 +52,22 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
-      - name: Write .env.test
+      - name: Create isolated schema and write .env.test
+        run: |
+          schema="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          echo "TEST_SCHEMA=${schema}" >> "$GITHUB_ENV"
+          # psql does not understand Prisma's ?schema= parameter, so it gets the plain URL.
+          psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE SCHEMA IF NOT EXISTS ${schema}"
+          sep='?'
+          case "$TEST_DATABASE_URL" in *\?*) sep='&' ;; esac
+          printf 'DATABASE_URL="%s%sschema=%s"\nINTEGRATION_TEST_DB=1\n' \
+            "$TEST_DATABASE_URL" "$sep" "$schema" > .env.test
+      - name: Migrate
         env:
-          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-        run: printf 'DATABASE_URL="%s"\nINTEGRATION_TEST_DB=1\n' "$TEST_DATABASE_URL" > .env.test
-      - run: npm run test:db:migrate
+          # Safe: this schema is private to the run, so no other migration can race with it.
+          PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: "1"
+        run: npm run test:db:migrate
       - run: npm run test:integration
+      - name: Drop schema
+        if: always()
+        run: psql "$TEST_DATABASE_URL" -c "DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE"
