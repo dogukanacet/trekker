@@ -84,8 +84,12 @@ export function UserActionsCell({
   return (
     <div className="flex h-full items-center justify-end gap-1">
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogTrigger render={<Button variant="ghost" size="icon" />}>
-          <Pencil className="h-4 w-4" />
+        <DialogTrigger
+          render={
+            <Button variant="ghost" size="icon" aria-label={`${common("edit")} ${user.email}`} />
+          }
+        >
+          <Pencil className="h-4 w-4" aria-hidden="true" />
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -136,8 +140,16 @@ export function UserActionsCell({
 
       {!isSelf && (
         <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <AlertDialogTrigger render={<Button variant="ghost" size="icon" />}>
-            <Trash2 className="h-4 w-4 text-destructive" />
+          <AlertDialogTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`${common("delete")} ${user.email}`}
+              />
+            }
+          >
+            <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>

@@ -71,8 +71,13 @@ export function RenewalRow(props: Props) {
         ) : (
           <DriverQuickEditDialog driver={props.driver} depotList={props.depotList} />
         )}
-        <Button variant="ghost" size="icon" render={<Link href={detailHref} />}>
-          <Eye className="h-4 w-4" />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t("viewDetails", { name: label })}
+          render={<Link href={detailHref} />}
+        >
+          <Eye className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
     </li>
