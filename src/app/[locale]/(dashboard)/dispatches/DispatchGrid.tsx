@@ -90,11 +90,21 @@ const DispatchGrid = ({
                 )}
                 {canManage && (
                   <>
-                    <Button variant="ghost" size="icon" onClick={() => setEditingRow(row)}>
-                      <Pencil className="h-4 w-4" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${common("edit")} ${row.vehicle?.plate ?? ""}`.trim()}
+                      onClick={() => setEditingRow(row)}
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setRowToDelete(row)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`${common("delete")} ${row.vehicle?.plate ?? ""}`.trim()}
+                      onClick={() => setRowToDelete(row)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
                     </Button>
                   </>
                 )}

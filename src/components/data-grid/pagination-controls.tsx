@@ -30,18 +30,20 @@ export function PaginationControls({ page, pageSize, totalCount }: DataGridPagin
         <Button
           variant="outline"
           size="icon"
+          aria-label={t("previousPage")}
           disabled={page <= 1}
           onClick={() => goToPage(page - 1)}
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         <Button
           variant="outline"
           size="icon"
+          aria-label={t("nextPage")}
           disabled={page >= totalPages}
           onClick={() => goToPage(page + 1)}
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
     </div>

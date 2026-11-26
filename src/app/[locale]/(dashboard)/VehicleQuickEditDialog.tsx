@@ -49,8 +49,10 @@ export function VehicleQuickEditDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger render={<Button variant="ghost" size="icon" />}>
-        <Pencil className="h-4 w-4" />
+      <DialogTrigger
+        render={<Button variant="ghost" size="icon" aria-label={`${t("edit")} ${vehicle.plate}`} />}
+      >
+        <Pencil className="h-4 w-4" aria-hidden="true" />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
