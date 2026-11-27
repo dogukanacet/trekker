@@ -25,7 +25,8 @@ Multi-tenant fleet and dispatch management platform. Dispatchers plan routes, as
 - **One generic data grid.** AG Grid is fully encapsulated behind a small `DataGrid` component: filters, sorting and pagination live in the URL and run on the server (Prisma), so every list page is shareable, bookmarkable and secure.
 - **One export endpoint.** CSV and PDF export for every list, reusing the grid's own columns and the page's own query, so exports always match what the user sees and can never leak more than the page does.
 - **Audit trail.** Every create, update, delete, status change, role change and invitation is recorded in the same database transaction as the change itself, so the log can never disagree with the data. Admins browse it in a filterable, exportable grid with a before/after diff per entry.
-- **Tested tenant isolation.** An integration suite runs the real server actions against a separate database and asserts one invariant: nothing in tenant A changes when tenant B acts. 23 attack scenarios (cross-tenant ids on every mutation), read isolation and role checks run on every push.
+- **Tested tenant isolation.** An integration suite of 32 tests runs the real server actions against a separate database and asserts one invariant: nothing in tenant A changes when tenant B acts. 23 attack scenarios (cross-tenant ids on every mutation), read isolation and role checks run on every push.
+- **Tested end to end.** Every release runs browser tests (Playwright) against the freshly deployed development site: the live demo flow, role restrictions and an axe-core accessibility scan of the login page and every admin page.
 - **Content management without a redeploy.** A platform-admin panel edits, validates, publishes and rolls back translations at runtime, and can machine-translate with a free service.
 - **Internationalization.** Turkish and English out of the box, locale-prefixed URLs, languages that can be switched on from the panel.
 
@@ -63,21 +64,21 @@ Multi-tenant fleet and dispatch management platform. Dispatchers plan routes, as
 
 ## Tech stack
 
-| Area          | Choice                                                                                |
-| ------------- | ------------------------------------------------------------------------------------- |
-| Framework     | Next.js 15 (App Router), React 19, TypeScript (strict)                                |
-| Data          | PostgreSQL (Neon, pooled connection), Prisma 5                                        |
-| Auth          | Auth.js v5 (credentials, JWT sessions), bcryptjs                                      |
-| UI            | Tailwind CSS v4, shadcn/ui on Base UI primitives, lucide-react, sonner, next-themes   |
-| Data grid     | AG Grid Community v36                                                                 |
-| Maps          | Leaflet and react-leaflet                                                             |
-| i18n          | next-intl                                                                             |
-| Validation    | Zod 4, `@formatjs/icu-messageformat-parser`                                           |
-| Email         | Resend                                                                                |
-| Export        | jsPDF and jspdf-autotable (embedded DejaVu Sans for Turkish characters)               |
-| Observability | Sentry                                                                                |
-| Security      | Upstash Redis rate limiting, Content-Security-Policy and security headers, Dependabot |
-| Tooling       | Vitest, GitHub Actions, ESLint 9 (flat config), Prettier, Husky and lint-staged       |
+| Area          | Choice                                                                                                |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| Framework     | Next.js 15 (App Router), React 19, TypeScript (strict)                                                |
+| Data          | PostgreSQL (Neon, pooled connection), Prisma 5                                                        |
+| Auth          | Auth.js v5 (credentials, JWT sessions), bcryptjs                                                      |
+| UI            | Tailwind CSS v4, shadcn/ui on Base UI primitives, lucide-react, sonner, next-themes                   |
+| Data grid     | AG Grid Community v36                                                                                 |
+| Maps          | Leaflet and react-leaflet                                                                             |
+| i18n          | next-intl                                                                                             |
+| Validation    | Zod 4, `@formatjs/icu-messageformat-parser`                                                           |
+| Email         | Resend                                                                                                |
+| Export        | jsPDF and jspdf-autotable (embedded DejaVu Sans for Turkish characters)                               |
+| Observability | Sentry                                                                                                |
+| Security      | Upstash Redis rate limiting, Content-Security-Policy and security headers, Dependabot                 |
+| Tooling       | Vitest, Playwright, axe-core, GitHub Actions, ESLint 9 (flat config), Prettier, Husky and lint-staged |
 
 ## Architecture notes
 
@@ -132,7 +133,7 @@ The login page has a **Try the live demo** button. There is no shared account.
   users cannot be edited or deleted, and `isPlatformAdmin` is never set. That is why the translation
   panel is not part of the demo; see the screenshots instead.
 - **Tested.** Unit tests cover the ticket and email helpers. Integration tests cover tenant seeding,
-  isolation between demos, and cleanup of expired demos.
+  isolation between demos, and cleanup of expired demos. The browser tests drive the demo flow itself.
 
 ## Environments & releases
 
@@ -149,7 +150,8 @@ How a release works:
 
 1. A pull request must pass lint, type checks, unit tests, a dependency audit and the
    integration tests (tenant isolation, demo cleanup) before it can be merged.
-2. Publishing a GitHub Release runs the full CI again, then deploys that tag to development.
+2. Publishing a GitHub Release runs the full CI again, deploys that tag to development and then
+   runs the browser tests against the deployed site.
 3. The same tag is promoted to test and then production by running the manual workflow.
    Rolling back means deploying an older tag the same way.
 
@@ -157,6 +159,54 @@ Each environment is a separate Vercel project with its own database and secrets,
 Vercel from the tagged commit. The deploy workflow only accepts published release tags.
 Database migrations are applied during each deploy, so they are written to be backward compatible
 (add first, remove later).
+
+## Testing
+
+| Layer             | Tooling                             | What it covers                                                              |
+| ----------------- | ----------------------------------- | --------------------------------------------------------------------------- |
+| Static checks     | ESLint, `tsc --noEmit`, `npm audit` | Lint, strict types, critical dependency advisories                          |
+| Unit tests        | Vitest                              | Pure logic such as the demo ticket, email helpers and audit diffs           |
+| Integration tests | Vitest + real PostgreSQL (Neon)     | Tenant isolation (cross-tenant ids on every mutation), demo seeding/cleanup |
+| End-to-end tests  | Playwright (Chromium)               | The live demo flow against a deployed environment                           |
+| Accessibility     | axe-core (WCAG 2.0/2.1 A and AA)    | Login and admin pages; critical and serious violations fail the run         |
+
+### Pipeline order
+
+`GitHub Release → checks → integration → deploy to development → E2E against the deployed site`
+
+E2E runs **after** the deploy and targets the real development URL, so it verifies what users
+actually get rather than a local build. Test and production deploys stay manual.
+
+### Integration tests on a shared database
+
+All integration jobs use one Neon branch. Each CI run creates its own PostgreSQL schema
+(`ci_<run id>_<attempt>`), migrates into it and drops it afterwards, so runs execute in parallel
+without queueing and without touching each other.
+
+### End-to-end flow
+
+The suite starts a disposable demo tenant exactly like a visitor and checks:
+
+- the demo banner and role switcher
+- creating a vehicle, and rejecting a duplicate plate within the same tenant
+- role restrictions: a dispatcher cannot open the users page, a driver only keeps dispatches
+- no critical or serious accessibility violations on the dashboard, vehicles, dispatches, users
+  and audit log pages
+
+Failures upload a Playwright report with traces and screenshots as a workflow artifact.
+Retries are disabled on purpose: every run consumes one demo from the per-IP rate limit.
+
+### Running the browser tests
+
+```bash
+# against a deployed environment
+E2E_BASE_URL=https://trekker-dev.vercel.app npm run e2e
+
+# locally (starts `npm run dev` itself; needs a working .env)
+npm run e2e
+```
+
+`npm run e2e:report` opens the last HTML report. In PowerShell: `$env:E2E_BASE_URL="..."; npm run e2e`.
 
 ## Security
 
@@ -166,7 +216,7 @@ Database migrations are applied during each deploy, so they are written to be ba
 - **Authentication hardening.** Constant-time-ish login (a dummy bcrypt comparison for unknown emails), normalised emails, bounded input lengths, no email enumeration, hashed single-use tokens, refresh token rotation and revocation.
 - **Headers and CSP.** `Content-Security-Policy` (no third-party scripts, no framing, restricted `connect-src` and `img-src`), `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`. Map marker icons are self-hosted so the only external origin is the OpenStreetMap tile server.
 - **Error reporting without leaks.** Sentry is configured not to collect request bodies or user info, because form posts contain passwords.
-- **Supply chain.** CI runs `npm audit` (failing on critical), Dependabot opens weekly grouped updates, install scripts are allow-listed, and workflows do not persist git credentials.
+- **Supply chain.** CI runs `npm audit` (failing on critical), Dependabot opens weekly grouped updates (major Prisma upgrades are held back until the Prisma 7 migration), install scripts are allow-listed, and workflows do not persist git credentials.
 - **Known gaps.** The CSP still allows `'unsafe-inline'` scripts and styles (Next.js inline payload, AG Grid runtime styles); a nonce-based policy is on the roadmap. Registration does not verify email addresses yet.
 
 ## Getting started
@@ -208,7 +258,7 @@ The translation panel is not reachable through any role. Set the flag yourself, 
 
 ### Running the integration tests
 
-Create a separate database (a Neon branch works), put `DATABASE_URL="..."` and `INTEGRATION_TEST_DB=1` in `.env.test`, then run `npm run test:db:migrate` followed by `npm run test:integration`. The setup refuses to run without the flag, so the suite can never touch a real database by accident. CI does the same with a repository secret.
+Create a separate database (a Neon branch works), put `DATABASE_URL="..."` and `INTEGRATION_TEST_DB=1` in `.env.test`, then run `npm run test:db:migrate` followed by `npm run test:integration`. The setup refuses to run without the flag, so the suite can never touch a real database by accident. CI does the same with a repository secret, in a schema of its own per run (see Testing).
 
 ### Demo data
 
@@ -225,6 +275,7 @@ npm run mock:seed -- --email you@example.com
 | `npm run dev` / `build` / `start`                 | Next.js development, production build (runs `prisma generate` and `migrate deploy`) and server |
 | `npm test`                                        | Unit tests (Vitest)                                                                            |
 | `npm run test:integration`                        | Tenant isolation tests against a dedicated test database (`.env.test`, see below)              |
+| `npm run e2e` / `e2e:report`                      | Playwright browser tests (set `E2E_BASE_URL` for a deployed site) and the HTML report          |
 | `npm run lint` / `format`                         | ESLint and Prettier                                                                            |
 | `npm run mock:seed` / `mock:clean` / `mock:reset` | Demo data                                                                                      |
 | `npm run i18n:merge`                              | One-off helper that merged the old per-locale JSON files into one                              |
@@ -246,7 +297,8 @@ src/
   i18n/                       routing, request config, message loading
 localizations/translations.json
 tests/                       integration tests (tenant isolation)
-.github/                     CI workflow and Dependabot
+e2e/                         Playwright specs and the accessibility helper
+.github/                     CI, release, deploy and E2E workflows, Dependabot
 prisma/schema.prisma
 scripts/mock-data.ts
 ```
@@ -257,7 +309,8 @@ scripts/mock-data.ts
 - **Export is capped at 5,000 rows** and silently truncated beyond that.
 - **Translation panel scope.** A key added from the panel only appears where the code references it. Languages outside the fixed pool need a deploy. Machine translations are drafts of unknown quality, so they are never published automatically.
 - **Audit log scope.** Only changes made through the app's server actions are recorded: data written by `mock:seed` is not, sign-in events are not logged yet, and there is no retention policy (the table only grows). Translation changes keep their own release history instead of being duplicated here.
-- **No browser-level tests.** Pure logic is unit tested and tenant isolation is covered by database integration tests; browser end-to-end tests were deliberately left out.
+- **Browser test scope.** E2E covers the demo flow, role restrictions and one accessibility scan per page. The scan runs in the light theme on rendered pages only (open dialogs and filter popups are not scanned) and excludes the Leaflet map. List and delete flows are not covered yet.
+- **Tenant isolation is enforced in application code.** It is covered by integration tests, but PostgreSQL row-level security is not used.
 - **Email sender.** Until a domain is verified in Resend, mail can only be delivered to the account owner's address.
 
 ## Roadmap
@@ -267,4 +320,5 @@ scripts/mock-data.ts
 - Sign-in events and a retention policy for the audit log.
 - Scheduled reports (needs the export columns on the server).
 - Nonce-based CSP, email verification on registration.
-- Browser-level end-to-end tests.
+- More browser tests: list and delete flows, dialogs in the accessibility scan, dark theme.
+- Prisma 7 migration (`prisma.config.ts` and a driver adapter).
