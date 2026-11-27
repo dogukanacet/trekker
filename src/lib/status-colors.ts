@@ -4,5 +4,5 @@ export const dispatchStatusColors: Record<DispatchStatus, string> = {
   [DispatchStatus.PLANNED]: "bg-muted text-foreground",
   [DispatchStatus.IN_PROGRESS]: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
   [DispatchStatus.COMPLETED]: "bg-green-500/10 text-green-700 dark:text-green-400",
-  [DispatchStatus.CANCELLED]: "bg-destructive/10 text-destructive",
+  [DispatchStatus.CANCELLED]: "bg-red-500/10 text-red-700 dark:text-red-400",
 };
