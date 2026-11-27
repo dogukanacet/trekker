@@ -169,6 +169,55 @@ Database migrations are applied during each deploy, so they are written to be ba
 - **Supply chain.** CI runs `npm audit` (failing on critical), Dependabot opens weekly grouped updates, install scripts are allow-listed, and workflows do not persist git credentials.
 - **Known gaps.** The CSP still allows `'unsafe-inline'` scripts and styles (Next.js inline payload, AG Grid runtime styles); a nonce-based policy is on the roadmap. Registration does not verify email addresses yet.
 
+## Testing
+
+Quality gates run on every release, in this order:
+
+| Layer | Tooling | What it covers |
+| --- | --- | --- |
+| Static checks | ESLint, `tsc --noEmit`, `npm audit` | Lint, strict types, critical dependency advisories |
+| Unit tests | Vitest | Pure logic such as the demo ticket signing and permission rules |
+| Integration tests | Vitest + real PostgreSQL (Neon) | Tenant isolation (cross-tenant reads and writes are rejected), demo tenant creation and cleanup |
+| End-to-end tests | Playwright (Chromium) | The live demo flow against the deployed development environment |
+| Accessibility | axe-core (WCAG 2.0/2.1 A and AA) | Login page and every admin page; critical and serious violations fail the build |
+
+### How the pipeline uses them
+
+`GitHub Release → checks → integration → deploy to development → E2E against the deployed site`
+
+- Nothing deploys on merge. A release runs the checks first, so a broken build never reaches an environment.
+- E2E runs **after** the deploy, against the real development URL, so it verifies what users get rather than a local build.
+- Test and production deploys are manual and reuse the same artifacts, so promotion is a deliberate step.
+
+### Integration tests on a shared database
+
+All integration jobs share one Neon branch. Each CI run creates its own PostgreSQL schema (`ci_<run id>_<attempt>`), migrates into it and drops it afterwards, so runs execute in parallel without queueing or cancelling each other.
+
+### End-to-end flow
+
+The E2E suite starts a disposable demo tenant exactly like a visitor would and then checks:
+
+- the demo banner and role switcher
+- creating a vehicle, and rejecting a duplicate plate within the same tenant
+- role restrictions: a dispatcher cannot open the users page, a driver only keeps access to dispatches
+- no critical or serious accessibility violations on the dashboard, vehicles, dispatches, users and audit log pages
+
+Failures upload a Playwright report with traces and screenshots as a workflow artifact.
+
+### Running locally
+
+```bash
+npm test                  # unit tests
+npm run test:db:migrate   # prepare the test database (needs .env.test)
+npm run test:integration  # integration tests
+npx playwright test       # E2E; set E2E_BASE_URL to target a deployed environment
+```
+
+### Known limits
+
+- Tenant isolation is enforced in application code and covered by integration tests; PostgreSQL row-level security is not used.
+- The accessibility scan covers rendered pages in the light theme and excludes the Leaflet map; open dialogs and filter popups are not scanned yet.
+
 ## Getting started
 
 Requirements: Node.js 22.12 or newer and a PostgreSQL database (a free Neon project works).
