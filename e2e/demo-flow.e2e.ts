@@ -73,6 +73,49 @@ test("a duplicate plate in the same tenant is rejected", async () => {
   await expect(dialog).toBeHidden();
 });
 
+// The plate filter (?q=) narrows the grid to the vehicle under test, so the next tests do not
+// depend on the default sort order or the page size.
+const vehicleRow = () => page.locator(".ag-row").filter({ hasText: E2E_PLATE });
+const gotoVehicleList = (query: string) => page.goto(`/en/vehicles?q=${encodeURIComponent(query)}`);
+
+test("the created vehicle is listed and the plate filter narrows the grid", async () => {
+  await gotoVehicleList(E2E_PLATE);
+  await expect(vehicleRow()).toHaveCount(1);
+  await expect(vehicleRow()).toContainText("Playwright Van");
+
+  await gotoVehicleList("NO-SUCH-PLATE");
+  await expect(page.locator(".ag-row")).toHaveCount(0);
+});
+
+test("admin can edit a vehicle", async () => {
+  await gotoVehicleList(E2E_PLATE);
+  // The icon buttons are named "<action> <plate>" for screen readers; the tests rely on that too.
+  await vehicleRow()
+    .getByRole("button", { name: new RegExp(`edit.*${E2E_PLATE}`, "i") })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await dialog.locator('input[name="model"]').fill("Playwright Truck");
+  await dialog.locator('button[type="submit"]').click();
+  await expect(page.locator('[data-sonner-toast][data-type="success"]')).toBeVisible();
+  await expect(dialog).toBeHidden();
+  await expect(vehicleRow()).toContainText("Playwright Truck");
+});
+
+test("admin can delete a vehicle", async () => {
+  await gotoVehicleList(E2E_PLATE);
+  await vehicleRow()
+    .getByRole("button", { name: new RegExp(`delete.*${E2E_PLATE}`, "i") })
+    .click();
+  const confirmation = page.getByRole("alertdialog");
+  await confirmation.locator('button[type="submit"]').click();
+  await expect(confirmation).toBeHidden();
+  await expect(vehicleRow()).toHaveCount(0);
+
+  // A reload proves the deletion reached the database and not just the client.
+  await gotoVehicleList(E2E_PLATE);
+  await expect(page.locator(".ag-row")).toHaveCount(0);
+});
+
 test("dispatcher loses access to the users page", async () => {
   await switchRole("Admin", "Dispatcher");
   await page.goto("/en/users");
